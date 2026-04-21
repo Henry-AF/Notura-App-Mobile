@@ -9,10 +9,18 @@ interface GlassCardProps {
   intensity?: number;
   dark?: boolean;
   noPad?: boolean;
+  noShadow?: boolean;
 }
 
-export function GlassCard({ children, style, intensity = 60, dark = false, noPad = false }: GlassCardProps) {
+export function GlassCard({ children, style, intensity = 55, dark = false, noPad = false, noShadow = false }: GlassCardProps) {
   const colors = useColors();
+
+  const shadowStyle: ViewStyle = noShadow ? {} : Platform.OS === "ios" ? {
+    shadowColor: "rgb(100,60,180)",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+  } : Platform.OS === "android" ? { elevation: 3 } : {};
 
   if (Platform.OS === "ios") {
     return (
@@ -21,9 +29,10 @@ export function GlassCard({ children, style, intensity = 60, dark = false, noPad
         tint={dark ? "dark" : "systemUltraThinMaterialLight"}
         style={[
           styles.base,
+          shadowStyle,
           {
             borderColor: dark ? "rgba(255,255,255,0.12)" : colors.glassBorder,
-            backgroundColor: dark ? "rgba(61,26,110,0.85)" : "transparent",
+            backgroundColor: dark ? "rgba(61,26,110,0.9)" : undefined,
           },
           !noPad && styles.pad,
           style,
@@ -38,10 +47,10 @@ export function GlassCard({ children, style, intensity = 60, dark = false, noPad
     <View
       style={[
         styles.base,
+        shadowStyle,
         {
           backgroundColor: dark ? colors.darkCard : colors.glassBg,
           borderColor: dark ? "rgba(255,255,255,0.12)" : colors.glassBorder,
-          ...shadowStyle(),
         },
         !noPad && styles.pad,
         style,
@@ -50,21 +59,6 @@ export function GlassCard({ children, style, intensity = 60, dark = false, noPad
       {children}
     </View>
   );
-}
-
-function shadowStyle() {
-  if (Platform.OS === "ios") {
-    return {
-      shadowColor: "rgb(100,60,180)",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.12,
-      shadowRadius: 20,
-    };
-  }
-  if (Platform.OS === "android") {
-    return { elevation: 3 };
-  }
-  return {};
 }
 
 const styles = StyleSheet.create({

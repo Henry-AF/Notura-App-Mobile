@@ -1,11 +1,7 @@
 import { Feather } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import React from "react";
-import {
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Platform, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 import { useColors } from "@/hooks/useColors";
 
 interface SearchBarProps {
@@ -14,36 +10,50 @@ interface SearchBarProps {
   placeholder?: string;
 }
 
-export function SearchBar({
-  value,
-  onChangeText,
-  placeholder = "Search...",
-}: SearchBarProps) {
+export function SearchBar({ value, onChangeText, placeholder = "Buscar..." }: SearchBarProps) {
   const colors = useColors();
 
-  return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
-        },
-      ]}
-    >
-      <Feather name="search" size={16} color={colors.gray400} />
+  const inner = (
+    <>
+      <Feather name="search" size={16} color="#AF52DE" />
       <TextInput
-        style={[styles.input, { color: colors.foreground }]}
+        style={[styles.input, { color: colors.heading }]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.gray300}
+        placeholderTextColor="#B0A0C8"
       />
       {value.length > 0 && (
         <TouchableOpacity onPress={() => onChangeText("")}>
           <Feather name="x" size={16} color={colors.gray400} />
         </TouchableOpacity>
       )}
+    </>
+  );
+
+  if (Platform.OS === "ios") {
+    return (
+      <BlurView
+        intensity={50}
+        tint="systemUltraThinMaterialLight"
+        style={[styles.container, { borderColor: colors.glassBorder }]}
+      >
+        {inner}
+      </BlurView>
+    );
+  }
+
+  return (
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: "rgba(175,82,222,0.06)",
+          borderColor: colors.glassBorder,
+        },
+      ]}
+    >
+      {inner}
     </View>
   );
 }
@@ -52,15 +62,12 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1.5,
+    height: 46,
+    borderRadius: 14,
+    borderWidth: 1,
     paddingHorizontal: 14,
     gap: 10,
+    overflow: "hidden",
   },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
+  input: { flex: 1, fontSize: 14 },
 });

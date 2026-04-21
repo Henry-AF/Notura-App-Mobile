@@ -53,7 +53,7 @@ const colors = {
     gray700: "#3C2D5E",
     gray800: "#2D0A5E",
 
-    shadow: "#64 3CB4",
+    shadow: "#643CB4",
     shadowCard: "rgba(100,60,180,0.08)",
 
     darkCard: "#3D1A6E",

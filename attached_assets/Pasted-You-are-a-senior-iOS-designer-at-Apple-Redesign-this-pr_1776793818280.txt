@@ -1,0 +1,75 @@
+You are a senior iOS designer at Apple. Redesign this productivity app (reference layout provided) with a premium light-mode aesthetic, glassmorphism effects, and soft purple as the primary accent. The app has: Home screen with project cards, a Profile screen with stats and folders, a My Team section, and a bottom tab bar.
+Color system
+
+Page background: pure white #FFFFFF
+Surface / card background: rgba(255, 255, 255, 0.65) with backdrop-filter: blur(20px) saturate(180%) — this is the glassmorphism layer
+Glass card border: 1px solid rgba(175, 82, 222, 0.15)
+Primary accent (purple): #9B59D0
+Soft purple card background (featured/highlighted cards): rgba(175, 82, 222, 0.08) — barely-there lavender tint
+Deep purple card (like the profile header in the reference): #3D1A6E — rich, dark aubergine, not navy
+All headings and bold labels: #2D0A5E — deep purple-black, never plain black
+Body text / secondary labels: #7B6FA0 — muted purple-gray
+Progress bars: #AF52DE fill over rgba(175, 82, 222, 0.12) track
+Tab bar active icon: #9B59D0
+
+Glassmorphism rules
+Apply glass effect to ALL cards, the tab bar, the floating button backdrop, and the search field:
+background: rgba(255, 255, 255, 0.6);
+backdrop-filter: blur(20px) saturate(160%);
+-webkit-backdrop-filter: blur(20px) saturate(160%);
+border: 1px solid rgba(255, 255, 255, 0.8);
+border-radius: 20px;
+box-shadow: 0 4px 24px rgba(100, 60, 180, 0.08), 0 1px 2px rgba(100, 60, 180, 0.04);
+The page background behind cards should have a very subtle radial gradient to give the glass something to blur against:
+background: radial-gradient(ellipse at 30% 20%, rgba(200, 160, 255, 0.18) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(160, 120, 255, 0.12) 0%, transparent 55%), #FFFFFF
+Floating action button — Record
+Replace the generic + button with a premium voice/recording FAB:
+
+Shape: circle, 64px diameter
+Background: linear-gradient(135deg, #AF52DE, #7B2FBE)
+Icon: microphone SVG, white, 26px
+Ring pulse animation: two concentric rings that scale out and fade — rgba(175, 82, 222, 0.3) — on loop when idle, like a breathing heartbeat
+On press: scale to 0.94, ring pulse accelerates
+Label below button: "Record" in 11px, #9B59D0, weight 500
+Elevated with: box-shadow: 0 8px 32px rgba(123, 47, 190, 0.40)
+
+Typography
+
+Font stack: SF Pro Display, system-ui, -apple-system
+Screen title ("Home", "Profile"): 17px, weight 600, #2D0A5E, centered
+Greeting ("Hi Jennifer!"): 26px, weight 600, #2D0A5E
+Subgreeting ("Good morning"): 14px, weight 400, #7B6FA0
+Section headers ("Ongoing Projects"): 17px, weight 600, #2D0A5E
+Card titles: 15px, weight 500, #2D0A5E
+Card subtitles and metadata: 12px, #7B6FA0
+Stats numbers (75k, 16K): 22px, weight 700, white — inside the dark profile header card
+
+Component-by-component specs
+Home screen:
+
+Top bar: hamburger icon left (2px stroke, #2D0A5E), title center, bell icon right — all on transparent background, no border
+Search bar: glass style, rgba(175,82,222,0.06) fill, magnifier icon in #AF52DE, placeholder text #B0A0C8, border-radius: 14px
+Welcome banner: glass card with soft purple tint rgba(175,82,222,0.07), left-aligned text, illustration right — keep the person-at-desk illustration but recolor to purple tones
+Project cards: 2-column grid, glass cards with border-radius: 18px, date in #7B6FA0 11px top, icon in a soft purple rounded square rgba(175,82,222,0.12) bg with #9B59D0 icon, progress bar in purple, percentage right-aligned in #9B59D0 weight 600
+
+Profile screen:
+
+Profile header card: dark aubergine #3D1A6E, border-radius: 24px, avatar with white ring border 3px, name in white weight 700, role in rgba(255,255,255,0.65), stats row with thin vertical separators rgba(255,255,255,0.2)
+Folders section: glass cards, folder icon in #AF52DE, folder name in #2D0A5E, metadata in #7B6FA0
+Team list rows: glass row cards stacked, left icon in soft purple rounded square, project name in #2D0A5E, status label in rgba(175,82,222,0.1) pill with #9B59D0 text, avatar stack on right
+
+Tab bar:
+
+Full glass: rgba(255,255,255,0.75) + blur(24px)
+Border top: 1px solid rgba(175,82,222,0.12)
+Active icon + label: #9B59D0
+Inactive: #C4B8D8
+FAB sits centered above the tab bar, elevated 12px above it
+
+Motion
+
+Cards on scroll: fade in + translate Y 8px, spring easing 0.35s
+FAB pulse rings: @keyframes pulse scale 1→1.6, opacity 0.5→0, duration 1.8s, infinite, staggered 0.9s between rings
+Tab switch: icon bounces scale 1→1.15→1, 0.25s spring
+
+Deliver all screens faithfully following this spec. Use real content from the reference image. Every surface that can be glass — should be glass.

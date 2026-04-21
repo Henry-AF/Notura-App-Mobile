@@ -1,29 +1,17 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import {
-  FlatList,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/Badge";
+import { GlassBackground } from "@/components/GlassBackground";
+import { GlassCard } from "@/components/GlassCard";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 const TAGS = ["Todos", "Métrica", "Risco", "Decisão", "Destaque"];
-
-function cardShadow() {
-  if (Platform.OS === "ios") {
-    return { shadowColor: "#000" as const, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12 };
-  }
-  return { elevation: 1 as const };
-}
 
 export default function HighlightsScreen() {
   const colors = useColors();
@@ -32,84 +20,89 @@ export default function HighlightsScreen() {
   const { highlights, removeHighlight } = useApp();
   const [activeTag, setActiveTag] = useState("Todos");
 
-  const filtered =
-    activeTag === "Todos" ? highlights : highlights.filter((h) => h.tag === activeTag);
+  const filtered = activeTag === "Todos" ? highlights : highlights.filter((h) => h.tag === activeTag);
 
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const topPad = Platform.OS === "web" ? 20 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 24;
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: topPad }]}>
-        <TouchableOpacity
-          style={[styles.backBtn, { backgroundColor: colors.secondary }]}
-          onPress={() => router.back()}
-        >
-          <Feather name="arrow-left" size={18} color={colors.foreground} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.foreground }]}>Destaques</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <FlatList
-        data={filtered}
-        keyExtractor={(h) => h.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.list, { paddingBottom: bottomPad }]}
-        ListHeaderComponent={
-          <View style={styles.tags}>
-            {TAGS.map((tag) => (
-              <TouchableOpacity
-                key={tag}
-                style={[styles.tagChip, { backgroundColor: activeTag === tag ? colors.primary : colors.secondary }]}
-                onPress={() => setActiveTag(tag)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.tagText, { color: activeTag === tag ? "#fff" : colors.gray600 }]}>
-                  {tag}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        }
-        renderItem={({ item: h }) => (
-          <View
-            style={[styles.card, { backgroundColor: colors.card, borderLeftColor: h.speakerColor, ...cardShadow() }]}
+    <GlassBackground>
+      <View style={styles.root}>
+        <View style={[styles.header, { paddingTop: topPad }]}>
+          <TouchableOpacity
+            style={[styles.backBtn, { backgroundColor: "rgba(175,82,222,0.08)" }]}
+            onPress={() => router.back()}
           >
-            <View style={styles.cardHeader}>
-              <Avatar initials={h.speakerInitials} color={h.speakerColor} size={24} />
-              <Text style={[styles.speakerName, { color: h.speakerColor }]}>{h.speakerName}</Text>
-              <Text style={[styles.time, { color: colors.gray400 }]}>{h.timeLabel}</Text>
-              {h.tag && <Badge label={h.tag} variant="primary" />}
-              <TouchableOpacity onPress={() => removeHighlight(h.id)} style={styles.deleteBtn}>
-                <Feather name="trash-2" size={13} color={colors.gray300} />
-              </TouchableOpacity>
+            <Feather name="arrow-left" size={18} color={colors.heading} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: colors.heading }]}>Destaques</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        <FlatList
+          data={filtered}
+          keyExtractor={(h) => h.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.list, { paddingBottom: bottomPad }]}
+          ListHeaderComponent={
+            <View style={styles.tags}>
+              {TAGS.map((tag) => (
+                <TouchableOpacity
+                  key={tag}
+                  style={[styles.tagChip, {
+                    backgroundColor: activeTag === tag ? colors.primary : "rgba(175,82,222,0.08)",
+                    borderColor: activeTag === tag ? colors.primary : "rgba(175,82,222,0.15)",
+                    borderWidth: 1,
+                  }]}
+                  onPress={() => setActiveTag(tag)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.tagText, { color: activeTag === tag ? "#fff" : colors.heading }]}>
+                    {tag}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-            <Text style={[styles.quote, { color: colors.gray700 }]}>"{h.text}"</Text>
-            <TouchableOpacity
-              style={styles.source}
-              onPress={() => router.push(`/conversation/${h.conversationId}`)}
-              activeOpacity={0.7}
-            >
-              <Feather name="file-text" size={11} color={colors.gray400} />
-              <Text style={[styles.sourceTitle, { color: colors.gray400 }]}>{h.conversationTitle}</Text>
-              <Text style={[styles.sourceDate, { color: colors.gray300 }]}>{h.createdAt}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <View style={[styles.emptyIcon, { backgroundColor: colors.secondary }]}>
-              <Feather name="bookmark" size={28} color={colors.gray300} />
+          }
+          renderItem={({ item: h }) => (
+            <GlassCard noPad style={{ borderLeftWidth: 3, borderLeftColor: h.speakerColor, marginBottom: 10 }}>
+              <View style={styles.cardInner}>
+                <View style={styles.cardHeader}>
+                  <Avatar initials={h.speakerInitials} color={h.speakerColor} size={24} />
+                  <Text style={[styles.speakerName, { color: h.speakerColor }]}>{h.speakerName}</Text>
+                  <Text style={[styles.time, { color: colors.gray400 }]}>{h.timeLabel}</Text>
+                  {h.tag && <Badge label={h.tag} variant="primary" />}
+                  <TouchableOpacity onPress={() => removeHighlight(h.id)} style={styles.deleteBtn}>
+                    <Feather name="trash-2" size={13} color={colors.gray300} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={[styles.quote, { color: colors.heading }]}>"{h.text}"</Text>
+                <TouchableOpacity
+                  style={styles.source}
+                  onPress={() => router.push(`/conversation/${h.conversationId}`)}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="file-text" size={11} color={colors.gray400} />
+                  <Text style={[styles.sourceTitle, { color: colors.gray400 }]}>{h.conversationTitle}</Text>
+                  <Text style={[styles.sourceDate, { color: colors.gray300 }]}>{h.createdAt}</Text>
+                </TouchableOpacity>
+              </View>
+            </GlassCard>
+          )}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <View style={[styles.emptyIcon, { backgroundColor: "rgba(175,82,222,0.08)" }]}>
+                <Feather name="bookmark" size={28} color={colors.gray400} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.heading }]}>Sem destaques</Text>
+              <Text style={[styles.emptySub, { color: colors.bodyText }]}>
+                Marque momentos importantes dentro das conversas para vê-los aqui
+              </Text>
             </View>
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Sem destaques</Text>
-            <Text style={[styles.emptySub, { color: colors.gray500 }]}>
-              Marque momentos importantes dentro das conversas para vê-los aqui
-            </Text>
-          </View>
-        }
-      />
-    </View>
+          }
+        />
+      </View>
+    </GlassBackground>
   );
 }
 
@@ -122,7 +115,7 @@ const styles = StyleSheet.create({
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
   tagChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9999 },
   tagText: { fontSize: 13, fontWeight: "500" },
-  card: { borderRadius: 16, padding: 14, gap: 10, marginBottom: 10, borderLeftWidth: 3 },
+  cardInner: { padding: 14, gap: 10 },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
   speakerName: { fontSize: 12, fontWeight: "600", flex: 1 },
   time: { fontSize: 11 },

@@ -1,15 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import {
-  Modal,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { GlassCard } from "@/components/GlassCard";
 import { useColors } from "@/hooks/useColors";
 
 interface PricingModalProps {
@@ -40,58 +32,54 @@ export function PricingModal({ visible, onClose }: PricingModalProps) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.root, { backgroundColor: "#F9F5FF" }]}>
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>Seja Pro</Text>
-          <TouchableOpacity style={[styles.closeBtn, { backgroundColor: colors.secondary }]} onPress={onClose}>
-            <Feather name="x" size={18} color={colors.gray500} />
+          <Text style={[styles.headerTitle, { color: colors.heading }]}>Seja Pro</Text>
+          <TouchableOpacity
+            style={[styles.closeBtn, { backgroundColor: "rgba(175,82,222,0.08)" }]}
+            onPress={onClose}
+          >
+            <Feather name="x" size={18} color={colors.bodyText} />
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-          <Text style={[styles.tagline, { color: colors.gray500 }]}>
+          <Text style={[styles.tagline, { color: colors.bodyText }]}>
             Aproveite ao máximo cada conversa
           </Text>
 
           <View style={styles.plans}>
-            <View
-              style={[
-                styles.planCard,
-                { backgroundColor: colors.card },
-                Platform.OS === "ios" && { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12 },
-                Platform.OS === "android" && { elevation: 2 },
-              ]}
-            >
-              <Text style={[styles.planName, { color: colors.gray500 }]}>Gratuito</Text>
+            <GlassCard style={{ gap: 14 }}>
+              <Text style={[styles.planName, { color: colors.bodyText }]}>Gratuito</Text>
               <View style={styles.priceRow}>
-                <Text style={[styles.price, { color: colors.foreground }]}>R$0</Text>
-                <Text style={[styles.period, { color: colors.gray500 }]}>/mês</Text>
+                <Text style={[styles.price, { color: colors.heading }]}>R$0</Text>
+                <Text style={[styles.period, { color: colors.bodyText }]}>/mês</Text>
               </View>
               <View style={styles.features}>
                 {FREE_FEATURES.map((f) => (
                   <View key={f} style={styles.featureRow}>
                     <Feather name="check" size={14} color={colors.gray400} />
-                    <Text style={[styles.featureText, { color: colors.gray600 }]}>{f}</Text>
+                    <Text style={[styles.featureText, { color: colors.bodyText }]}>{f}</Text>
                   </View>
                 ))}
               </View>
-              <View style={[styles.currentPill, { backgroundColor: colors.secondary }]}>
-                <Text style={[styles.currentText, { color: colors.gray500 }]}>Plano atual</Text>
+              <View style={[styles.currentPill, { backgroundColor: "rgba(175,82,222,0.08)" }]}>
+                <Text style={[styles.currentText, { color: colors.bodyText }]}>Plano atual</Text>
               </View>
-            </View>
+            </GlassCard>
 
             <View
               style={[
-                styles.planCard,
+                styles.proPlanCard,
                 { backgroundColor: colors.primary },
-                Platform.OS === "ios" && { shadowColor: colors.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 20 },
+                Platform.OS === "ios" && { shadowColor: "#7B2FBE", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 20 },
                 Platform.OS === "android" && { elevation: 8 },
               ]}
             >
               <View style={styles.popularBadge}>
                 <Text style={styles.popularText}>Mais popular</Text>
               </View>
-              <Text style={[styles.planName, { color: "rgba(255,255,255,0.7)" }]}>Pro</Text>
+              <Text style={[styles.planName, { color: "rgba(255,255,255,0.75)" }]}>Pro</Text>
               <View style={styles.priceRow}>
                 <Text style={[styles.price, { color: "#fff" }]}>R$99</Text>
                 <Text style={[styles.period, { color: "rgba(255,255,255,0.7)" }]}>/mês</Text>
@@ -111,7 +99,7 @@ export function PricingModal({ visible, onClose }: PricingModalProps) {
             style={[
               styles.upgradeBtn,
               { backgroundColor: colors.primary },
-              Platform.OS === "ios" && { shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.28, shadowRadius: 14 },
+              Platform.OS === "ios" && { shadowColor: "#7B2FBE", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 14 },
             ]}
             activeOpacity={0.92}
           >
@@ -130,27 +118,14 @@ export function PricingModal({ visible, onClose }: PricingModalProps) {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === "web" ? 20 : 16,
-    paddingBottom: 12,
-  },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: Platform.OS === "web" ? 20 : 16, paddingBottom: 12 },
   headerTitle: { fontSize: 20, fontWeight: "700" },
   closeBtn: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   body: { padding: 20, gap: 20 },
   tagline: { fontSize: 15, textAlign: "center" },
   plans: { gap: 14 },
-  planCard: { borderRadius: 20, padding: 20, gap: 14 },
-  popularBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.25)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 9999,
-  },
+  proPlanCard: { borderRadius: 20, padding: 20, gap: 14 },
+  popularBadge: { alignSelf: "flex-start", backgroundColor: "rgba(255,255,255,0.25)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999 },
   popularText: { fontSize: 11, fontWeight: "600", color: "#fff" },
   planName: { fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 },
   priceRow: { flexDirection: "row", alignItems: "flex-end", gap: 2 },
