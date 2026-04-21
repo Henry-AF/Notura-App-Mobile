@@ -1,6 +1,5 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import {
@@ -14,7 +13,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/Avatar";
-import { Badge } from "@/components/Badge";
 import { ConversationCard } from "@/components/ConversationCard";
 import { WaveformBars } from "@/components/WaveformBars";
 import { useApp } from "@/context/AppContext";
@@ -26,6 +24,33 @@ function greeting() {
   if (h < 12) return "Good morning";
   if (h < 18) return "Good afternoon";
   return "Good evening";
+}
+
+function StatChip({ icon, value, label }: { icon: string; value: string | number; label: string }) {
+  const colors = useColors();
+  return (
+    <View
+      style={[
+        styles.statChip,
+        {
+          backgroundColor: colors.card,
+          shadowColor: colors.shadow,
+        },
+        Platform.OS === "ios" && {
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 12,
+        },
+        Platform.OS === "android" && { elevation: 1 },
+      ]}
+    >
+      <View style={[styles.statIconWrap, { backgroundColor: colors.brandSubtle }]}>
+        <Feather name={icon as any} size={14} color={colors.primary} />
+      </View>
+      <Text style={[styles.statValue, { color: colors.foreground }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: colors.gray500 }]}>{label}</Text>
+    </View>
+  );
 }
 
 export default function HomeScreen() {
@@ -45,17 +70,12 @@ export default function HomeScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingTop: topPad, paddingBottom: bottomPad },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingTop: topPad, paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topBar}>
           <View>
-            <Text style={[styles.greeting, { color: colors.gray500 }]}>
-              {greeting()},
-            </Text>
+            <Text style={[styles.greeting, { color: colors.gray500 }]}>{greeting()},</Text>
             <Text style={[styles.name, { color: colors.foreground }]}>
               {currentUser.name.split(" ")[0]}
             </Text>
@@ -64,109 +84,99 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={[
                 styles.iconBtn,
-                { backgroundColor: colors.card, borderColor: colors.border },
+                { backgroundColor: colors.secondary },
               ]}
               onPress={() => setPricingVisible(true)}
             >
-              <Feather name="zap" size={18} color={colors.primary} />
+              <Feather name="zap" size={17} color={colors.primary} />
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/profile")}
-              activeOpacity={0.8}
-            >
-              <Avatar initials={currentUser.initials} color={colors.primary} size={40} />
+            <TouchableOpacity onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.85}>
+              <Avatar initials={currentUser.initials} color={colors.primary} size={38} />
             </TouchableOpacity>
           </View>
         </View>
 
         <TouchableOpacity
-          style={[styles.recordCard]}
-          activeOpacity={0.85}
+          style={[
+            styles.recordBtn,
+            { backgroundColor: colors.primary },
+            Platform.OS === "ios" && {
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.28,
+              shadowRadius: 16,
+            },
+            Platform.OS === "android" && { elevation: 6 },
+          ]}
+          activeOpacity={0.95}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             router.push("/record");
           }}
         >
-          <LinearGradient
-            colors={["#5341CD", "#3526A0"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.recordGradient}
-          >
-            <View style={styles.recordLeft}>
-              <View style={styles.recordIconWrap}>
-                <Feather name="mic" size={22} color="#fff" />
-              </View>
-              <View>
-                <Text style={styles.recordTitle}>Start Recording</Text>
-                <Text style={styles.recordSub}>
-                  AI will transcribe in real-time
-                </Text>
-              </View>
+          <View style={styles.recordLeft}>
+            <View style={styles.recordIconWrap}>
+              <Feather name="mic" size={20} color="#fff" />
             </View>
-            <WaveformBars isActive barCount={14} color="rgba(255,255,255,0.6)" height={36} />
-          </LinearGradient>
+            <View>
+              <Text style={styles.recordTitle}>Start Recording</Text>
+              <Text style={styles.recordSub}>AI transcribes in real-time</Text>
+            </View>
+          </View>
+          <WaveformBars isActive barCount={12} color="rgba(255,255,255,0.55)" height={32} />
         </TouchableOpacity>
 
         <View style={styles.statsRow}>
-          {[
-            { label: "This week", value: mockStats.thisWeekConversations, unit: "convos", icon: "calendar" },
-            { label: "Total time", value: "24h", unit: "recorded", icon: "clock" },
-            { label: "Actions open", value: mockStats.openActionItems, unit: "pending", icon: "check-square" },
-          ].map((s) => (
-            <View
-              key={s.label}
-              style={[
-                styles.statChip,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              <Feather name={s.icon as any} size={14} color={colors.primary} />
-              <Text style={[styles.statValue, { color: colors.foreground }]}>
-                {s.value}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>
-                {s.label}
-              </Text>
-            </View>
-          ))}
+          <StatChip icon="calendar" value={mockStats.thisWeekConversations} label="This week" />
+          <StatChip icon="clock" value="24h" label="Recorded" />
+          <StatChip icon="check-square" value={mockStats.openActionItems} label="Actions open" />
         </View>
 
         <View
           style={[
-            styles.aiCard,
-            { backgroundColor: colors.card, borderColor: colors.border },
+            styles.digestCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+            Platform.OS === "ios" && {
+              shadowColor: colors.shadow,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.06,
+              shadowRadius: 12,
+            },
+            Platform.OS === "android" && { elevation: 2 },
           ]}
         >
-          <View style={styles.aiHeader}>
-            <View
-              style={[
-                styles.aiIconWrap,
-                { backgroundColor: colors.brandSubtle },
-              ]}
-            >
-              <Feather name="zap" size={14} color={colors.primary} />
+          <View style={styles.digestHeader}>
+            <View style={[styles.digestIconWrap, { backgroundColor: colors.brandSubtle }]}>
+              <Feather name="zap" size={13} color={colors.primary} />
             </View>
-            <Text style={[styles.aiTitle, { color: colors.foreground }]}>
+            <Text style={[styles.digestTitle, { color: colors.foreground }]}>
               Today's AI Digest
             </Text>
-            <Badge label="New" variant="primary" />
+            <View style={[styles.newPill, { backgroundColor: colors.brandSubtle }]}>
+              <Text style={[styles.newPillText, { color: colors.primary }]}>New</Text>
+            </View>
           </View>
-          <Text style={[styles.aiText, { color: colors.gray700 }]}>
-            You have <Text style={{ fontWeight: "600", color: colors.foreground }}>6 open action items</Text> from this week's meetings. Your talk-to-listen ratio is{" "}
-            <Text style={{ fontWeight: "600", color: colors.primary }}>42:58</Text> — you're listening more than average. Top topics: mobile, roadmap, Series B.
+          <Text style={[styles.digestText, { color: colors.gray600 }]}>
+            You have{" "}
+            <Text style={{ fontWeight: "600", color: colors.foreground }}>
+              6 open action items
+            </Text>{" "}
+            this week. Your talk-to-listen ratio is{" "}
+            <Text style={{ fontWeight: "600", color: colors.primary }}>42:58</Text> — you listen
+            more than average. Top topics: mobile, roadmap, Series B.
           </Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/analytics")}>
-            <Text style={[styles.aiLink, { color: colors.primary }]}>
+            <Text style={[styles.digestLink, { color: colors.primary }]}>
               View full analytics →
             </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-            Recent
-          </Text>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Recent</Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/search")}>
             <Text style={[styles.seeAll, { color: colors.primary }]}>See all</Text>
           </TouchableOpacity>
@@ -183,81 +193,78 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: { paddingHorizontal: 20, gap: 16 },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
+  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   greeting: { fontSize: 13 },
-  name: { fontSize: 26, fontWeight: "700", letterSpacing: -0.5 },
+  name: { fontSize: 28, fontWeight: "700", letterSpacing: -0.5 },
   topRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   iconBtn: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: 12,
-    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  recordCard: {
-    borderRadius: 20,
-    overflow: "hidden",
-    shadowColor: "#5341CD",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  recordGradient: {
+  recordBtn: {
+    borderRadius: 9999,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
   },
   recordLeft: { flexDirection: "row", alignItems: "center", gap: 14 },
   recordIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
   },
-  recordTitle: { fontSize: 16, fontWeight: "700", color: "#fff" },
-  recordSub: { fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 2 },
+  recordTitle: { fontSize: 16, fontWeight: "600", color: "#fff" },
+  recordSub: { fontSize: 12, color: "rgba(255,255,255,0.72)", marginTop: 1 },
   statsRow: { flexDirection: "row", gap: 10 },
   statChip: {
     flex: 1,
     alignItems: "center",
-    borderRadius: 12,
-    borderWidth: 0.5,
-    padding: 12,
-    gap: 4,
-  },
-  statValue: { fontSize: 20, fontWeight: "700", letterSpacing: -0.5 },
-  statLabel: { fontSize: 10, textAlign: "center" },
-  aiCard: {
     borderRadius: 16,
-    borderWidth: 0.5,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    gap: 5,
+  },
+  statIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statValue: { fontSize: 20, fontWeight: "600", letterSpacing: -0.5 },
+  statLabel: { fontSize: 10, textAlign: "center" },
+  digestCard: {
+    borderRadius: 16,
+    borderWidth: Platform.OS === "ios" ? 0 : 0.5,
     padding: 16,
     gap: 10,
   },
-  aiHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  aiIconWrap: {
+  digestHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  digestIconWrap: {
     width: 26,
     height: 26,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
-  aiTitle: { fontSize: 14, fontWeight: "600", flex: 1 },
-  aiText: { fontSize: 13, lineHeight: 20 },
-  aiLink: { fontSize: 13, fontWeight: "500" },
+  digestTitle: { fontSize: 14, fontWeight: "600", flex: 1 },
+  newPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9999 },
+  newPillText: { fontSize: 11, fontWeight: "500" },
+  digestText: { fontSize: 13, lineHeight: 20 },
+  digestLink: { fontSize: 13, fontWeight: "500" },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  sectionTitle: { fontSize: 17, fontWeight: "600" },
-  seeAll: { fontSize: 13, fontWeight: "500" },
+  sectionTitle: { fontSize: 18, fontWeight: "600" },
+  seeAll: { fontSize: 14, fontWeight: "500" },
 });

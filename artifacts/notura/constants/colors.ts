@@ -1,115 +1,121 @@
 const colors = {
   light: {
-    text: "#1A1A36",
-    tint: "#5341CD",
+    text: "#1C1C1E",
+    tint: "#AF52DE",
 
-    background: "#F8F8FB",
-    foreground: "#1A1A36",
+    background: "#FFFFFF",
+    foreground: "#1C1C1E",
 
     card: "#FFFFFF",
-    cardForeground: "#1A1A36",
+    cardForeground: "#1C1C1E",
 
-    primary: "#5341CD",
+    primary: "#AF52DE",
     primaryForeground: "#FFFFFF",
 
-    secondary: "#EEEEF4",
-    secondaryForeground: "#343452",
+    secondary: "#F5F4FA",
+    secondaryForeground: "#3C3C43",
 
-    muted: "#EEEEF4",
-    mutedForeground: "#707090",
+    muted: "#F5F4FA",
+    mutedForeground: "#8E8E93",
 
-    accent: "#EAE8F9",
-    accentForeground: "#3526A0",
+    accent: "rgba(175,82,222,0.10)",
+    accentForeground: "#AF52DE",
 
-    destructive: "#E24B4A",
+    destructive: "#FF3B30",
     destructiveForeground: "#FFFFFF",
 
-    success: "#1D9E75",
+    success: "#34C759",
     successForeground: "#FFFFFF",
-    successBg: "rgba(29,158,117,0.10)",
+    successBg: "rgba(52,199,89,0.10)",
 
-    warning: "#EF9F27",
+    warning: "#FF9500",
     warningForeground: "#FFFFFF",
-    warningBg: "rgba(239,159,39,0.12)",
+    warningBg: "rgba(255,149,0,0.10)",
 
-    error: "#E24B4A",
-    errorBg: "rgba(226,75,74,0.10)",
+    error: "#FF3B30",
+    errorBg: "rgba(255,59,48,0.10)",
 
-    info: "#378ADD",
-    infoBg: "rgba(55,138,221,0.10)",
+    info: "#007AFF",
+    infoBg: "rgba(0,122,255,0.10)",
 
-    border: "#D8D8E4",
-    input: "#D8D8E4",
+    border: "rgba(0,0,0,0.07)",
+    input: "#F2F1F7",
 
-    brandSubtle: "#EAE8F9",
-    brand400: "#6657D3",
-    brand600: "#4535B8",
-    brand700: "#3526A0",
+    brandSubtle: "rgba(175,82,222,0.10)",
+    brand400: "#BF6FE2",
+    brand600: "#9F3FCA",
+    brand700: "#7D2FA3",
 
-    gray300: "#B8B8CC",
-    gray400: "#9494AE",
-    gray500: "#707090",
-    gray600: "#505070",
-    gray700: "#343452",
-    gray800: "#1A1A36",
+    gray300: "#C7C7CC",
+    gray400: "#AEAEB2",
+    gray500: "#8E8E93",
+    gray600: "#636366",
+    gray700: "#3C3C43",
+    gray800: "#1C1C1E",
+
+    shadow: "#000000",
+    shadowCard: "rgba(0,0,0,0.06)",
   },
 
   dark: {
-    text: "#F8F8FB",
-    tint: "#8174D9",
+    text: "#FFFFFF",
+    tint: "#BF6FE2",
 
-    background: "#0E0E1E",
-    foreground: "#F8F8FB",
+    background: "#000000",
+    foreground: "#FFFFFF",
 
-    card: "#1A1A2E",
-    cardForeground: "#F8F8FB",
+    card: "#1C1C1E",
+    cardForeground: "#FFFFFF",
 
-    primary: "#6657D3",
+    primary: "#BF6FE2",
     primaryForeground: "#FFFFFF",
 
-    secondary: "#262640",
-    secondaryForeground: "#D8D8E4",
+    secondary: "#2C2C2E",
+    secondaryForeground: "#EBEBF5",
 
-    muted: "#222238",
-    mutedForeground: "#9494AE",
+    muted: "#1C1C1E",
+    mutedForeground: "#8E8E93",
 
-    accent: "#261888",
-    accentForeground: "#C7C2EF",
+    accent: "rgba(191,111,226,0.15)",
+    accentForeground: "#BF6FE2",
 
-    destructive: "#E24B4A",
+    destructive: "#FF453A",
     destructiveForeground: "#FFFFFF",
 
-    success: "#1D9E75",
+    success: "#30D158",
     successForeground: "#FFFFFF",
-    successBg: "rgba(29,158,117,0.15)",
+    successBg: "rgba(48,209,88,0.12)",
 
-    warning: "#EF9F27",
+    warning: "#FF9F0A",
     warningForeground: "#FFFFFF",
-    warningBg: "rgba(239,159,39,0.15)",
+    warningBg: "rgba(255,159,10,0.12)",
 
-    error: "#E24B4A",
-    errorBg: "rgba(226,75,74,0.15)",
+    error: "#FF453A",
+    errorBg: "rgba(255,69,58,0.12)",
 
-    info: "#378ADD",
-    infoBg: "rgba(55,138,221,0.15)",
+    info: "#0A84FF",
+    infoBg: "rgba(10,132,255,0.12)",
 
-    border: "#2E2E4E",
-    input: "#2E2E4E",
+    border: "rgba(255,255,255,0.08)",
+    input: "#2C2C2E",
 
-    brandSubtle: "#1E1A42",
-    brand400: "#8174D9",
-    brand600: "#7A6ADF",
-    brand700: "#A49BE5",
+    brandSubtle: "rgba(191,111,226,0.15)",
+    brand400: "#D095F0",
+    brand600: "#A845CB",
+    brand700: "#8E2FAF",
 
-    gray300: "#4A4A6A",
-    gray400: "#5A5A7A",
-    gray500: "#9494AE",
-    gray600: "#B8B8CC",
-    gray700: "#D8D8E4",
-    gray800: "#F8F8FB",
+    gray300: "#3A3A3C",
+    gray400: "#48484A",
+    gray500: "#8E8E93",
+    gray600: "#AEAEB2",
+    gray700: "#C7C7CC",
+    gray800: "#EBEBF5",
+
+    shadow: "#000000",
+    shadowCard: "rgba(0,0,0,0.30)",
   },
 
-  radius: 12,
+  radius: 16,
 };
 
 export default colors;

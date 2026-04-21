@@ -7,25 +7,20 @@ interface AvatarProps {
   size?: number;
 }
 
-export function Avatar({ initials, color = "#5341CD", size = 36 }: AvatarProps) {
+export function Avatar({ initials, color = "#AF52DE", size = 36 }: AvatarProps) {
   return (
     <View
       style={[
         styles.container,
         {
-          backgroundColor: color + "22",
+          backgroundColor: color + "1A",
           width: size,
           height: size,
           borderRadius: size / 2,
         },
       ]}
     >
-      <Text
-        style={[
-          styles.initials,
-          { color, fontSize: size * 0.38 },
-        ]}
-      >
+      <Text style={[styles.initials, { color, fontSize: size * 0.36 }]}>
         {initials}
       </Text>
     </View>
@@ -33,12 +28,6 @@ export function Avatar({ initials, color = "#5341CD", size = 36 }: AvatarProps) 
 }
 
 const styles = StyleSheet.create({
-  container: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  initials: {
-    fontWeight: "600",
-    letterSpacing: 0.5,
-  },
+  container: { alignItems: "center", justifyContent: "center" },
+  initials: { fontWeight: "600", letterSpacing: 0.3 },
 });

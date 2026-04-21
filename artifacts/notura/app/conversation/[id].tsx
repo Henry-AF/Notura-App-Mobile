@@ -21,6 +21,18 @@ import { useColors } from "@/hooks/useColors";
 const TABS = ["Summary", "Transcript", "Actions", "Highlights"] as const;
 type Tab = (typeof TABS)[number];
 
+function cardShadow() {
+  if (Platform.OS === "ios") {
+    return {
+      shadowColor: "#000" as const,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+    };
+  }
+  return { elevation: 1 as const };
+}
+
 export default function ConversationDetailScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -29,39 +41,33 @@ export default function ConversationDetailScreen() {
   const { conversations, toggleActionItem, addHighlight, highlights } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>("Summary");
 
-  const conv = useMemo(
-    () => conversations.find((c) => c.id === id),
-    [conversations, id]
-  );
-
-  if (!conv) {
-    return (
-      <View style={[styles.root, { backgroundColor: colors.background }]}>
-        <Text style={[styles.notFound, { color: colors.gray500 }]}>
-          Conversation not found
-        </Text>
-      </View>
-    );
-  }
+  const conv = useMemo(() => conversations.find((c) => c.id === id), [conversations, id]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 16;
 
+  if (!conv) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }]}>
+        <Text style={[styles.notFound, { color: colors.gray500 }]}>Conversation not found</Text>
+      </View>
+    );
+  }
+
   const convHighlights = (conv.highlights ?? []).concat(
-    highlights.filter((h) => h.conversationId === id && !conv.highlights?.find((ch) => ch.id === h.id))
+    highlights.filter(
+      (h) => h.conversationId === id && !conv.highlights?.find((ch) => ch.id === h.id)
+    )
   );
 
   function handleShare() {
-    Share.share({
-      title: conv.title,
-      message: `${conv.title}\n\nSummary: ${conv.summary}\n\nRecorded on ${conv.date} (${conv.duration})`,
-    });
+    Share.share({ title: conv.title, message: `${conv.title}\n\n${conv.summary ?? ""}` });
   }
 
-  function handleHighlight(segId: string) {
+  function handleBookmark(segId: string) {
     const seg = conv.transcript?.find((s) => s.id === segId);
     if (!seg) return;
-    const h = {
+    addHighlight({
       id: `h-${Date.now()}`,
       conversationId: conv.id,
       conversationTitle: conv.title,
@@ -72,9 +78,8 @@ export default function ConversationDetailScreen() {
       timeLabel: seg.timeLabel,
       createdAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       tag: "Highlight",
-    };
-    addHighlight(h);
-    Alert.alert("Saved", "Highlight added to your saved moments.");
+    });
+    Alert.alert("Saved", "Added to your highlights.");
   }
 
   return (
@@ -84,49 +89,41 @@ export default function ConversationDetailScreen() {
           style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
           onPress={() => router.back()}
         >
-          <Feather name="arrow-left" size={20} color={colors.foreground} />
+          <Feather name="arrow-left" size={18} color={colors.foreground} />
         </TouchableOpacity>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
             onPress={handleShare}
           >
-            <Feather name="share-2" size={18} color={colors.foreground} />
+            <Feather name="share-2" size={16} color={colors.foreground} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
-          >
-            <Feather name="more-horizontal" size={18} color={colors.foreground} />
+          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.secondary }]}>
+            <Feather name="more-horizontal" size={16} color={colors.foreground} />
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.titleSection}>
-        <Text style={[styles.convTitle, { color: colors.foreground }]}>
-          {conv.title}
-        </Text>
+        <Text style={[styles.convTitle, { color: colors.foreground }]}>{conv.title}</Text>
         <View style={styles.convMeta}>
-          <Text style={[styles.metaText, { color: colors.gray500 }]}>
-            {conv.date}
-          </Text>
-          <Text style={[styles.metaDot, { color: colors.gray300 }]}>·</Text>
-          <Text style={[styles.metaText, { color: colors.gray500 }]}>
-            {conv.duration}
-          </Text>
+          <Text style={[styles.metaText, { color: colors.gray500 }]}>{conv.date}</Text>
+          <View style={[styles.metaDot, { backgroundColor: colors.gray300 }]} />
+          <Text style={[styles.metaText, { color: colors.gray500 }]}>{conv.duration}</Text>
           {conv.wordCount && conv.wordCount > 0 ? (
             <>
-              <Text style={[styles.metaDot, { color: colors.gray300 }]}>·</Text>
+              <View style={[styles.metaDot, { backgroundColor: colors.gray300 }]} />
               <Text style={[styles.metaText, { color: colors.gray500 }]}>
                 {conv.wordCount.toLocaleString()} words
               </Text>
             </>
           ) : null}
         </View>
-        <View style={styles.speakersRow}>
-          {conv.speakers.map((sp, i) => (
-            <View key={sp.id} style={styles.speakerChip}>
-              <Avatar initials={sp.initials} color={sp.color} size={20} />
-              <Text style={[styles.speakerChipName, { color: colors.gray700 }]}>
+        <View style={styles.speakerRow}>
+          {conv.speakers.map((sp) => (
+            <View key={sp.id} style={styles.speakerItem}>
+              <Avatar initials={sp.initials} color={sp.color} size={18} />
+              <Text style={[styles.speakerName, { color: colors.gray600 }]}>
                 {sp.name.split(" ")[0]}
               </Text>
             </View>
@@ -134,135 +131,93 @@ export default function ConversationDetailScreen() {
         </View>
       </View>
 
-      <View
-        style={[
-          styles.tabBar,
-          { borderBottomColor: colors.border },
-        ]}
-      >
+      <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
         {TABS.map((tab) => (
           <TouchableOpacity
             key={tab}
             style={styles.tabBtn}
             onPress={() => setActiveTab(tab)}
+            activeOpacity={0.7}
           >
             <Text
               style={[
                 styles.tabText,
-                { color: activeTab === tab ? colors.primary : colors.gray400 },
+                { color: activeTab === tab ? colors.primary : colors.gray400, fontWeight: activeTab === tab ? "600" : "400" },
               ]}
             >
               {tab}
             </Text>
             {activeTab === tab && (
-              <View
-                style={[styles.tabIndicator, { backgroundColor: colors.primary }]}
-              />
+              <View style={[styles.tabIndicator, { backgroundColor: colors.primary }]} />
             )}
           </TouchableOpacity>
         ))}
       </View>
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: bottomPad },
-        ]}
+        contentContainerStyle={[styles.tabContent, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
         {activeTab === "Summary" && (
-          <View style={styles.tabContent}>
+          <View style={styles.tabSection}>
             {conv.status === "processing" ? (
-              <View style={styles.processingBox}>
-                <Feather name="loader" size={24} color={colors.warning} />
+              <View style={[styles.processingCard, { backgroundColor: colors.card, ...cardShadow() }]}>
+                <Feather name="loader" size={22} color={colors.warning} />
                 <Text style={[styles.processingText, { color: colors.gray600 }]}>
-                  AI is processing your recording...
+                  AI is generating your summary...
                 </Text>
               </View>
             ) : (
               <>
-                <View
-                  style={[
-                    styles.summaryCard,
-                    { backgroundColor: colors.card, borderColor: colors.border },
-                  ]}
-                >
+                <View style={[styles.summaryCard, { backgroundColor: colors.card, ...cardShadow() }]}>
                   <View style={styles.summaryHeader}>
-                    <View
-                      style={[
-                        styles.aiIcon,
-                        { backgroundColor: colors.brandSubtle },
-                      ]}
-                    >
-                      <Feather name="zap" size={13} color={colors.primary} />
+                    <View style={[styles.summaryIcon, { backgroundColor: colors.brandSubtle }]}>
+                      <Feather name="zap" size={12} color={colors.primary} />
                     </View>
                     <Text style={[styles.summaryTitle, { color: colors.foreground }]}>
                       AI Summary
                     </Text>
                   </View>
-                  <Text style={[styles.summaryText, { color: colors.gray700 }]}>
-                    {conv.summary}
-                  </Text>
+                  <Text style={[styles.summaryText, { color: colors.gray700 }]}>{conv.summary}</Text>
                 </View>
 
                 {conv.keyPoints && conv.keyPoints.length > 0 && (
-                  <View
-                    style={[
-                      styles.keyPointsCard,
-                      { backgroundColor: colors.card, borderColor: colors.border },
-                    ]}
-                  >
-                    <Text style={[styles.kpTitle, { color: colors.foreground }]}>
+                  <View style={[styles.cardSection, { backgroundColor: colors.card, ...cardShadow() }]}>
+                    <Text style={[styles.cardSectionTitle, { color: colors.foreground }]}>
                       Key points
                     </Text>
                     {conv.keyPoints.map((kp, i) => (
                       <View key={i} style={styles.kpRow}>
-                        <View
-                          style={[styles.kpDot, { backgroundColor: colors.primary }]}
-                        />
-                        <Text style={[styles.kpText, { color: colors.gray700 }]}>
-                          {kp}
-                        </Text>
+                        <View style={[styles.kpDot, { backgroundColor: colors.primary }]} />
+                        <Text style={[styles.kpText, { color: colors.gray700 }]}>{kp}</Text>
                       </View>
                     ))}
                   </View>
                 )}
 
-                <View
-                  style={[
-                    styles.speakersCard,
-                    { backgroundColor: colors.card, borderColor: colors.border },
-                  ]}
-                >
-                  <Text style={[styles.kpTitle, { color: colors.foreground }]}>
+                <View style={[styles.cardSection, { backgroundColor: colors.card, ...cardShadow() }]}>
+                  <Text style={[styles.cardSectionTitle, { color: colors.foreground }]}>
                     Participants
                   </Text>
                   {conv.speakers.map((sp) => (
-                    <View key={sp.id} style={styles.speakerRow}>
-                      <Avatar initials={sp.initials} color={sp.color} size={32} />
+                    <View key={sp.id} style={styles.participantRow}>
+                      <Avatar initials={sp.initials} color={sp.color} size={34} />
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.spName, { color: colors.foreground }]}>
+                        <Text style={[styles.participantName, { color: colors.foreground }]}>
                           {sp.name}
                         </Text>
-                        <View style={styles.spBarRow}>
+                        <View style={[styles.spTrack, { backgroundColor: colors.secondary }]}>
                           <View
                             style={[
-                              styles.spBar,
-                              { backgroundColor: colors.secondary },
+                              styles.spFill,
+                              { width: `${sp.talkTimePercent}%` as any, backgroundColor: sp.color },
                             ]}
-                          >
-                            <View
-                              style={[
-                                styles.spBarFill,
-                                { width: `${sp.talkTimePercent}%` as any, backgroundColor: sp.color },
-                              ]}
-                            />
-                          </View>
-                          <Text style={[styles.spPct, { color: colors.gray500 }]}>
-                            {sp.talkTimePercent}%
-                          </Text>
+                          />
                         </View>
                       </View>
+                      <Text style={[styles.spPct, { color: colors.gray500 }]}>
+                        {sp.talkTimePercent}%
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -272,36 +227,27 @@ export default function ConversationDetailScreen() {
         )}
 
         {activeTab === "Transcript" && (
-          <View style={styles.tabContent}>
+          <View style={styles.tabSection}>
             {(conv.transcript ?? []).length === 0 ? (
               <View style={styles.empty}>
-                <Feather name="file-text" size={32} color={colors.gray300} />
-                <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                  {conv.status === "processing"
-                    ? "Transcript is being processed..."
-                    : "No transcript available"}
+                <View style={[styles.emptyIcon, { backgroundColor: colors.secondary }]}>
+                  <Feather name="file-text" size={28} color={colors.gray300} />
+                </View>
+                <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
+                  {conv.status === "processing" ? "Transcript processing..." : "No transcript"}
                 </Text>
               </View>
             ) : (
               conv.transcript!.map((seg) => (
-                <View key={seg.id} style={styles.segmentRow}>
-                  <Avatar
-                    initials={seg.speakerInitials}
-                    color={seg.speakerColor}
-                    size={30}
-                  />
-                  <View style={styles.segBody}>
+                <View key={seg.id} style={styles.segRow}>
+                  <Avatar initials={seg.speakerInitials} color={seg.speakerColor} size={28} />
+                  <View style={{ flex: 1 }}>
                     <View style={styles.segHeader}>
-                      <Text style={[styles.segName, { color: seg.speakerColor }]}>
+                      <Text style={[styles.segSpeaker, { color: seg.speakerColor }]}>
                         {seg.speakerName}
                       </Text>
-                      <Text style={[styles.segTime, { color: colors.gray400 }]}>
-                        {seg.timeLabel}
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => handleHighlight(seg.id)}
-                        style={styles.highlightBtn}
-                      >
+                      <Text style={[styles.segTime, { color: colors.gray400 }]}>{seg.timeLabel}</Text>
+                      <TouchableOpacity onPress={() => handleBookmark(seg.id)}>
                         <Feather name="bookmark" size={13} color={colors.gray300} />
                       </TouchableOpacity>
                     </View>
@@ -309,11 +255,7 @@ export default function ConversationDetailScreen() {
                       style={[
                         styles.segText,
                         { color: colors.gray700 },
-                        seg.isHighlighted && {
-                          backgroundColor: colors.primary + "14",
-                          borderRadius: 6,
-                          overflow: "hidden",
-                        },
+                        seg.isHighlighted && { backgroundColor: colors.brandSubtle, borderRadius: 6, overflow: "hidden" },
                       ]}
                     >
                       {seg.text}
@@ -326,97 +268,88 @@ export default function ConversationDetailScreen() {
         )}
 
         {activeTab === "Actions" && (
-          <View style={styles.tabContent}>
+          <View style={styles.tabSection}>
             {(conv.actionItems ?? []).length === 0 ? (
               <View style={styles.empty}>
-                <Feather name="check-square" size={32} color={colors.gray300} />
-                <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                  No action items detected
+                <View style={[styles.emptyIcon, { backgroundColor: colors.secondary }]}>
+                  <Feather name="check-square" size={28} color={colors.gray300} />
+                </View>
+                <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
+                  No action items
                 </Text>
               </View>
             ) : (
-              conv.actionItems!.map((action) => (
-                <TouchableOpacity
-                  key={action.id}
-                  style={[
-                    styles.actionRow,
-                    { backgroundColor: colors.card, borderColor: colors.border },
-                    action.completed && { opacity: 0.5 },
-                  ]}
-                  onPress={() => toggleActionItem(conv.id, action.id)}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.checkbox,
-                      {
-                        borderColor: action.completed ? colors.success : colors.gray300,
-                        backgroundColor: action.completed ? colors.success : "transparent",
-                      },
-                    ]}
-                  >
-                    {action.completed && (
-                      <Feather name="check" size={12} color="#fff" />
+              <View style={[styles.groupCard, { backgroundColor: colors.card, ...cardShadow() }]}>
+                {conv.actionItems!.map((action, idx) => (
+                  <View key={action.id}>
+                    <TouchableOpacity
+                      style={[styles.actionRow, action.completed && { opacity: 0.5 }]}
+                      onPress={() => toggleActionItem(conv.id, action.id)}
+                      activeOpacity={0.8}
+                    >
+                      <View
+                        style={[
+                          styles.checkbox,
+                          {
+                            borderColor: action.completed ? colors.success : colors.gray300,
+                            backgroundColor: action.completed ? colors.success : "transparent",
+                          },
+                        ]}
+                      >
+                        {action.completed && <Feather name="check" size={11} color="#fff" />}
+                      </View>
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <Text
+                          style={[
+                            styles.actionText,
+                            { color: colors.foreground },
+                            action.completed && { textDecorationLine: "line-through" },
+                          ]}
+                        >
+                          {action.text}
+                        </Text>
+                        <View style={styles.actionMeta}>
+                          <Avatar initials={action.assigneeInitials} color={action.assigneeColor} size={16} />
+                          <Text style={[styles.actionAssignee, { color: colors.gray500 }]}>
+                            {action.assignee}
+                          </Text>
+                          {action.dueDate && (
+                            <>
+                              <View style={[styles.metaDot, { backgroundColor: colors.gray300 }]} />
+                              <Text style={[styles.actionDue, { color: colors.gray400 }]}>
+                                {action.dueDate}
+                              </Text>
+                            </>
+                          )}
+                        </View>
+                      </View>
+                      <Badge
+                        label={action.priority}
+                        variant={action.priority === "high" ? "error" : action.priority === "medium" ? "warning" : "default"}
+                      />
+                    </TouchableOpacity>
+                    {idx < conv.actionItems!.length - 1 && (
+                      <View style={[styles.divider, { backgroundColor: colors.border, marginLeft: 48 }]} />
                     )}
                   </View>
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Text
-                      style={[
-                        styles.actionText,
-                        { color: colors.foreground },
-                        action.completed && { textDecorationLine: "line-through" },
-                      ]}
-                    >
-                      {action.text}
-                    </Text>
-                    <View style={styles.actionMeta}>
-                      <Avatar
-                        initials={action.assigneeInitials}
-                        color={action.assigneeColor}
-                        size={16}
-                      />
-                      <Text style={[styles.actionAssignee, { color: colors.gray500 }]}>
-                        {action.assignee}
-                      </Text>
-                      {action.dueDate && (
-                        <>
-                          <Text style={[styles.actionDot, { color: colors.gray300 }]}>
-                            ·
-                          </Text>
-                          <Feather name="calendar" size={11} color={colors.gray400} />
-                          <Text style={[styles.actionDue, { color: colors.gray400 }]}>
-                            {action.dueDate}
-                          </Text>
-                        </>
-                      )}
-                    </View>
-                  </View>
-                  <Badge
-                    label={action.priority}
-                    variant={
-                      action.priority === "high"
-                        ? "error"
-                        : action.priority === "medium"
-                        ? "warning"
-                        : "default"
-                    }
-                  />
-                </TouchableOpacity>
-              ))
+                ))}
+              </View>
             )}
           </View>
         )}
 
         {activeTab === "Highlights" && (
-          <View style={styles.tabContent}>
+          <View style={styles.tabSection}>
             {convHighlights.length === 0 ? (
               <View style={styles.empty}>
-                <Feather name="bookmark" size={32} color={colors.gray300} />
-                <Text style={[styles.emptyText, { color: colors.gray500 }]}>
+                <View style={[styles.emptyIcon, { backgroundColor: colors.secondary }]}>
+                  <Feather name="bookmark" size={28} color={colors.gray300} />
+                </View>
+                <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
                   No highlights yet
                 </Text>
-                <Text style={[styles.emptySub, { color: colors.gray400 }]}>
-                  Bookmark key moments in the transcript
+                <Text style={[styles.emptySub, { color: colors.gray500 }]}>
+                  Tap the bookmark icon in the transcript to save key moments
                 </Text>
               </View>
             ) : (
@@ -425,22 +358,16 @@ export default function ConversationDetailScreen() {
                   key={h.id}
                   style={[
                     styles.highlightCard,
-                    { backgroundColor: colors.card, borderColor: colors.border, borderLeftColor: h.speakerColor, borderLeftWidth: 3 },
+                    { backgroundColor: colors.card, borderLeftColor: h.speakerColor, ...cardShadow() },
                   ]}
                 >
                   <View style={styles.hlHeader}>
                     <Avatar initials={h.speakerInitials} color={h.speakerColor} size={22} />
-                    <Text style={[styles.hlSpeaker, { color: h.speakerColor }]}>
-                      {h.speakerName}
-                    </Text>
-                    <Text style={[styles.hlTime, { color: colors.gray400 }]}>
-                      {h.timeLabel}
-                    </Text>
+                    <Text style={[styles.hlSpeaker, { color: h.speakerColor }]}>{h.speakerName}</Text>
+                    <Text style={[styles.hlTime, { color: colors.gray400 }]}>{h.timeLabel}</Text>
                     {h.tag && <Badge label={h.tag} variant="primary" />}
                   </View>
-                  <Text style={[styles.hlText, { color: colors.gray700 }]}>
-                    "{h.text}"
-                  </Text>
+                  <Text style={[styles.hlText, { color: colors.gray700 }]}>"{h.text}"</Text>
                 </View>
               ))
             )}
@@ -458,87 +385,86 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 10,
   },
-  iconBtn: { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  iconBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   headerActions: { flexDirection: "row", gap: 8 },
-  titleSection: { paddingHorizontal: 20, gap: 8, marginBottom: 4 },
+  titleSection: { paddingHorizontal: 20, gap: 6, marginBottom: 4 },
   convTitle: { fontSize: 20, fontWeight: "700", letterSpacing: -0.3 },
-  convMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
+  convMeta: { flexDirection: "row", alignItems: "center", gap: 5 },
   metaText: { fontSize: 12 },
-  metaDot: { fontSize: 12 },
-  speakersRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  speakerChip: { flexDirection: "row", alignItems: "center", gap: 5 },
-  speakerChipName: { fontSize: 12 },
-  tabBar: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    marginTop: 4,
-  },
+  metaDot: { width: 3, height: 3, borderRadius: 1.5 },
+  speakerRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
+  speakerItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  speakerName: { fontSize: 12 },
+  tabBar: { flexDirection: "row", borderBottomWidth: 0.5, marginTop: 4 },
   tabBtn: { flex: 1, alignItems: "center", paddingVertical: 12, position: "relative" },
-  tabText: { fontSize: 13, fontWeight: "500" },
-  tabIndicator: { position: "absolute", bottom: 0, left: "20%", right: "20%", height: 2, borderRadius: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16 },
-  tabContent: { gap: 12 },
-  processingBox: { alignItems: "center", gap: 12, paddingVertical: 32 },
-  processingText: { fontSize: 14 },
-  summaryCard: { borderRadius: 16, borderWidth: 0.5, padding: 16, gap: 10 },
-  summaryHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  aiIcon: { width: 24, height: 24, borderRadius: 7, alignItems: "center", justifyContent: "center" },
-  summaryTitle: { fontSize: 14, fontWeight: "600" },
-  summaryText: { fontSize: 14, lineHeight: 22 },
-  keyPointsCard: { borderRadius: 16, borderWidth: 0.5, padding: 16, gap: 10 },
-  kpTitle: { fontSize: 14, fontWeight: "600" },
-  kpRow: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
-  kpDot: { width: 6, height: 6, borderRadius: 3, marginTop: 7 },
-  kpText: { flex: 1, fontSize: 13, lineHeight: 20 },
-  speakersCard: { borderRadius: 16, borderWidth: 0.5, padding: 16, gap: 12 },
-  speakerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  spName: { fontSize: 13, fontWeight: "500", marginBottom: 4 },
-  spBarRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  spBar: { flex: 1, height: 5, borderRadius: 3, overflow: "hidden" },
-  spBarFill: { height: 5, borderRadius: 3 },
-  spPct: { fontSize: 11, width: 28 },
-  segmentRow: { flexDirection: "row", gap: 10, marginBottom: 18 },
-  segBody: { flex: 1, gap: 4 },
-  segHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
-  segName: { fontSize: 12, fontWeight: "600", flex: 1 },
-  segTime: { fontSize: 11 },
-  highlightBtn: { padding: 2 },
-  segText: { fontSize: 14, lineHeight: 21, paddingVertical: 2, paddingHorizontal: 2 },
-  actionRow: {
-    flexDirection: "row",
+  tabText: { fontSize: 13 },
+  tabIndicator: {
+    position: "absolute",
+    bottom: 0,
+    left: "15%",
+    right: "15%",
+    height: 2,
+    borderRadius: 1,
+  },
+  tabContent: { paddingHorizontal: 16, paddingTop: 16 },
+  tabSection: { gap: 12 },
+  processingCard: {
+    borderRadius: 16,
+    padding: 24,
     alignItems: "center",
     gap: 12,
-    borderRadius: 14,
-    borderWidth: 0.5,
-    padding: 14,
   },
+  processingText: { fontSize: 14 },
+  summaryCard: { borderRadius: 16, padding: 16, gap: 10 },
+  summaryHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  summaryIcon: { width: 22, height: 22, borderRadius: 7, alignItems: "center", justifyContent: "center" },
+  summaryTitle: { fontSize: 13, fontWeight: "600" },
+  summaryText: { fontSize: 14, lineHeight: 22 },
+  cardSection: { borderRadius: 16, padding: 16, gap: 12 },
+  cardSectionTitle: { fontSize: 14, fontWeight: "600" },
+  kpRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  kpDot: { width: 6, height: 6, borderRadius: 3, marginTop: 7 },
+  kpText: { flex: 1, fontSize: 13, lineHeight: 20 },
+  participantRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  participantName: { fontSize: 14, fontWeight: "500", marginBottom: 5 },
+  spTrack: { height: 5, borderRadius: 3, overflow: "hidden" },
+  spFill: { height: 5, borderRadius: 3 },
+  spPct: { fontSize: 12, width: 32, textAlign: "right" },
+  segRow: { flexDirection: "row", gap: 10, marginBottom: 18 },
+  segHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 3 },
+  segSpeaker: { fontSize: 12, fontWeight: "600", flex: 1 },
+  segTime: { fontSize: 11 },
+  segText: { fontSize: 14, lineHeight: 21, paddingHorizontal: 2, paddingVertical: 1 },
+  groupCard: { borderRadius: 16, overflow: "hidden" },
+  actionRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 6,
+    borderRadius: 7,
     borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
   },
-  actionText: { fontSize: 14, fontWeight: "500", lineHeight: 20 },
-  actionMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
+  actionText: { fontSize: 14, fontWeight: "500", lineHeight: 19 },
+  actionMeta: { flexDirection: "row", alignItems: "center", gap: 5 },
   actionAssignee: { fontSize: 11 },
-  actionDot: { fontSize: 11 },
   actionDue: { fontSize: 11 },
+  divider: { height: 0.5 },
   highlightCard: {
-    borderRadius: 14,
-    borderWidth: 0.5,
+    borderRadius: 16,
     padding: 14,
     gap: 8,
+    borderLeftWidth: 3,
   },
   hlHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
   hlSpeaker: { fontSize: 12, fontWeight: "600", flex: 1 },
   hlTime: { fontSize: 11 },
   hlText: { fontSize: 13, lineHeight: 20, fontStyle: "italic" },
-  empty: { alignItems: "center", paddingVertical: 48, gap: 8 },
-  emptyText: { fontSize: 14, fontWeight: "500" },
-  emptySub: { fontSize: 13 },
-  notFound: { flex: 1, textAlign: "center", marginTop: 100 },
+  empty: { alignItems: "center", paddingTop: 56, gap: 10 },
+  emptyIcon: { width: 64, height: 64, borderRadius: 20, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  emptyTitle: { fontSize: 16, fontWeight: "600" },
+  emptySub: { fontSize: 13, textAlign: "center", paddingHorizontal: 32 },
+  notFound: { fontSize: 16 },
 });

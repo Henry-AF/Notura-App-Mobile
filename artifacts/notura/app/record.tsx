@@ -1,6 +1,5 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -20,13 +19,13 @@ import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import type { Conversation } from "@/lib/mockData";
 
-const LIVE_TRANSCRIPT_LINES = [
-  { speaker: "Henry Costa", initials: "HC", color: "#5341CD", text: "Let's kick off the weekly sync. First item on the agenda is the mobile release." },
-  { speaker: "Sarah Kim", initials: "SK", color: "#1D9E75", text: "We're on track for May 15th. The audio module fix landed yesterday." },
-  { speaker: "Marcus Lee", initials: "ML", color: "#EF9F27", text: "Great news. What's the status on the App Store submission checklist?" },
-  { speaker: "Henry Costa", initials: "HC", color: "#5341CD", text: "About 80% done. We still need the privacy policy update and screenshots." },
-  { speaker: "Sarah Kim", initials: "SK", color: "#1D9E75", text: "I can take care of the screenshots today. Privacy policy is with legal." },
-  { speaker: "Marcus Lee", initials: "ML", color: "#EF9F27", text: "Legal said two more days. We should be clear to submit by end of week." },
+const LIVE_LINES = [
+  { speaker: "Henry Costa", initials: "HC", color: "#AF52DE", text: "Let's kick off the weekly sync. First item is the mobile release." },
+  { speaker: "Sarah Kim", initials: "SK", color: "#34C759", text: "We're on track for May 15th. The audio module fix landed yesterday." },
+  { speaker: "Marcus Lee", initials: "ML", color: "#FF9500", text: "Great news. What's the status on the App Store submission checklist?" },
+  { speaker: "Henry Costa", initials: "HC", color: "#AF52DE", text: "About 80% done. We still need the privacy policy and screenshots." },
+  { speaker: "Sarah Kim", initials: "SK", color: "#34C759", text: "I can handle screenshots today. Privacy policy is with legal." },
+  { speaker: "Marcus Lee", initials: "ML", color: "#FF9500", text: "Legal said two more days. We should be clear to submit by end of week." },
 ];
 
 function useTimer(running: boolean) {
@@ -49,7 +48,6 @@ export default function RecordScreen() {
 
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [title, setTitle] = useState("New Recording");
   const [visibleLines, setVisibleLines] = useState<number[]>([]);
   const [activeSpeaker, setActiveSpeaker] = useState(0);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -59,9 +57,9 @@ export default function RecordScreen() {
     if (!isRecording || isPaused) return;
     const id = setInterval(() => {
       setVisibleLines((prev) => {
-        if (prev.length >= LIVE_TRANSCRIPT_LINES.length) return prev;
+        if (prev.length >= LIVE_LINES.length) return prev;
         const next = [...prev, prev.length];
-        setActiveSpeaker(prev.length % LIVE_TRANSCRIPT_LINES.length);
+        setActiveSpeaker(prev.length % LIVE_LINES.length);
         return next;
       });
     }, 2800);
@@ -70,14 +68,14 @@ export default function RecordScreen() {
 
   useEffect(() => {
     if (!isRecording) return;
-    const pulse = Animated.loop(
+    const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.15, duration: 600, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.2, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
       ])
     );
-    pulse.start();
-    return () => pulse.stop();
+    loop.start();
+    return () => loop.stop();
   }, [isRecording]);
 
   function handleStart() {
@@ -89,23 +87,21 @@ export default function RecordScreen() {
 
   function handlePause() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setIsPaused(!isPaused);
+    setIsPaused((p) => !p);
   }
 
   function handleStop() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const conv: Conversation = {
       id: Date.now().toString(),
-      title: title || "New Recording",
+      title: "New Recording",
       subtitle: "Just recorded",
       date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
       dateShort: "Just now",
       duration: timer,
       durationSeconds: 0,
       status: "processing",
-      speakers: [
-        { id: "henry", name: "Henry Costa", initials: "HC", color: "#5341CD", talkTimePercent: 50, wordCount: 120 },
-      ],
+      speakers: [{ id: "henry", name: "Henry Costa", initials: "HC", color: "#AF52DE", talkTimePercent: 50, wordCount: 120 }],
       transcript: [],
       actionItems: [],
       highlights: [],
@@ -117,6 +113,12 @@ export default function RecordScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 16;
 
+  const SPEAKERS_DISPLAY = [
+    { name: "Henry", initials: "HC", color: "#AF52DE" },
+    { name: "Sarah", initials: "SK", color: "#34C759" },
+    { name: "Marcus", initials: "ML", color: "#FF9500" },
+  ];
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: topPad }]}>
@@ -124,93 +126,103 @@ export default function RecordScreen() {
           style={[styles.closeBtn, { backgroundColor: colors.secondary }]}
           onPress={() => router.back()}
         >
-          <Feather name="x" size={20} color={colors.foreground} />
+          <Feather name="x" size={18} color={colors.foreground} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-          {isRecording ? "Recording" : "Ready to record"}
+          {isRecording ? "Recording" : "Ready"}
         </Text>
-        <View style={{ width: 36 }} />
+        <View style={{ width: 38 }} />
       </View>
 
       <View style={styles.body}>
-        <View style={styles.timerSection}>
+        <View style={styles.timerBlock}>
           <Text style={[styles.timer, { color: colors.foreground }]}>{timer}</Text>
           {isRecording && !isPaused && (
-            <View style={styles.liveChip}>
+            <View style={styles.liveRow}>
               <Animated.View
                 style={[
                   styles.liveDot,
                   { backgroundColor: colors.error, transform: [{ scale: pulseAnim }] },
                 ]}
               />
-              <Text style={[styles.liveText, { color: colors.error }]}>LIVE</Text>
+              <Text style={[styles.liveLabel, { color: colors.error }]}>LIVE</Text>
             </View>
           )}
         </View>
 
-        <View style={styles.waveformSection}>
+        <View style={styles.waveformRow}>
           <WaveformBars
             isActive={isRecording && !isPaused}
-            barCount={32}
-            color={isRecording ? colors.error : colors.gray300}
-            height={56}
+            barCount={30}
+            color={isRecording ? colors.primary : colors.secondary}
+            height={52}
           />
         </View>
 
         {isRecording && (
-          <View style={styles.speakerChips}>
-            {[
-              { name: "Henry", initials: "HC", color: "#5341CD" },
-              { name: "Sarah", initials: "SK", color: "#1D9E75" },
-              { name: "Marcus", initials: "ML", color: "#EF9F27" },
-            ].map((sp, i) => (
-              <View
-                key={sp.name}
-                style={[
-                  styles.speakerChip,
-                  {
-                    backgroundColor: i === activeSpeaker % 3
-                      ? sp.color + "22"
-                      : colors.secondary,
-                    borderColor: i === activeSpeaker % 3 ? sp.color : "transparent",
-                    borderWidth: 1,
-                  },
-                ]}
-              >
-                <Avatar initials={sp.initials} color={sp.color} size={20} />
-                <Text style={[styles.chipName, { color: i === activeSpeaker % 3 ? sp.color : colors.gray500 }]}>
-                  {sp.name}
-                </Text>
-                {i === activeSpeaker % 3 && (
-                  <WaveformBars isActive barCount={5} color={sp.color} height={14} compact />
-                )}
-              </View>
-            ))}
+          <View style={styles.speakerRow}>
+            {SPEAKERS_DISPLAY.map((sp, i) => {
+              const active = i === activeSpeaker % SPEAKERS_DISPLAY.length;
+              return (
+                <View
+                  key={sp.name}
+                  style={[
+                    styles.speakerChip,
+                    {
+                      backgroundColor: active ? sp.color + "18" : colors.secondary,
+                      borderColor: active ? sp.color + "50" : "transparent",
+                      borderWidth: 1,
+                    },
+                  ]}
+                >
+                  <Avatar initials={sp.initials} color={sp.color} size={20} />
+                  <Text
+                    style={[
+                      styles.speakerChipName,
+                      { color: active ? sp.color : colors.gray500, fontWeight: active ? "500" : "400" },
+                    ]}
+                  >
+                    {sp.name}
+                  </Text>
+                  {active && (
+                    <WaveformBars isActive barCount={4} color={sp.color} height={12} compact />
+                  )}
+                </View>
+              );
+            })}
           </View>
         )}
 
         {isRecording && visibleLines.length > 0 && (
-          <View style={[styles.transcriptCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.transcriptHeader}>
-              <Feather name="file-text" size={13} color={colors.primary} />
-              <Text style={[styles.transcriptLabel, { color: colors.primary }]}>
+          <View
+            style={[
+              styles.transcriptCard,
+              { backgroundColor: colors.card },
+              Platform.OS === "ios" && {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 12,
+              },
+              Platform.OS === "android" && { elevation: 2 },
+            ]}
+          >
+            <View style={styles.transcriptLabel}>
+              <Feather name="file-text" size={12} color={colors.primary} />
+              <Text style={[styles.transcriptLabelText, { color: colors.primary }]}>
                 Live Transcript
               </Text>
             </View>
-            <ScrollView style={styles.transcriptScroll} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ maxHeight: 160 }} showsVerticalScrollIndicator={false}>
               {visibleLines.map((lineIdx) => {
-                const line = LIVE_TRANSCRIPT_LINES[lineIdx];
+                const line = LIVE_LINES[lineIdx];
                 if (!line) return null;
                 return (
                   <View key={lineIdx} style={styles.transcriptLine}>
-                    <Avatar initials={line.initials} color={line.color} size={24} />
+                    <Avatar initials={line.initials} color={line.color} size={22} />
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.segSpeaker, { color: line.color }]}>
-                        {line.speaker}
-                      </Text>
-                      <Text style={[styles.segText, { color: colors.gray700 }]}>
-                        {line.text}
-                      </Text>
+                      <Text style={[styles.segName, { color: line.color }]}>{line.speaker}</Text>
+                      <Text style={[styles.segText, { color: colors.gray600 }]}>{line.text}</Text>
                     </View>
                   </View>
                 );
@@ -222,13 +234,15 @@ export default function RecordScreen() {
         {!isRecording && (
           <View style={styles.hints}>
             {[
-              "AI identifies speakers automatically",
+              "Identifies speakers automatically",
               "Transcribed in real-time",
               "Action items extracted on finish",
-            ].map((hint) => (
-              <View key={hint} style={styles.hintRow}>
-                <Feather name="check-circle" size={14} color={colors.success} />
-                <Text style={[styles.hintText, { color: colors.gray500 }]}>{hint}</Text>
+            ].map((h) => (
+              <View key={h} style={styles.hintRow}>
+                <View style={[styles.hintDot, { backgroundColor: colors.success + "20" }]}>
+                  <Feather name="check" size={12} color={colors.success} />
+                </View>
+                <Text style={[styles.hintText, { color: colors.gray600 }]}>{h}</Text>
               </View>
             ))}
           </View>
@@ -238,9 +252,18 @@ export default function RecordScreen() {
       <View style={[styles.controls, { paddingBottom: bottomPad }]}>
         {!isRecording ? (
           <TouchableOpacity
-            style={[styles.recordBtn, { backgroundColor: colors.error }]}
+            style={[
+              styles.bigBtn,
+              { backgroundColor: colors.error },
+              Platform.OS === "ios" && {
+                shadowColor: colors.error,
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.3,
+                shadowRadius: 16,
+              },
+            ]}
             onPress={handleStart}
-            activeOpacity={0.85}
+            activeOpacity={0.92}
           >
             <Feather name="mic" size={28} color="#fff" />
           </TouchableOpacity>
@@ -250,26 +273,30 @@ export default function RecordScreen() {
               style={[styles.controlBtn, { backgroundColor: colors.secondary }]}
               onPress={handleStop}
             >
-              <Feather name="square" size={22} color={colors.error} />
-              <Text style={[styles.controlLabel, { color: colors.error }]}>Stop</Text>
+              <Feather name="square" size={20} color={colors.error} />
+              <Text style={[styles.controlBtnLabel, { color: colors.error }]}>Stop</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[
-                styles.recordBtn,
+                styles.bigBtn,
                 { backgroundColor: isPaused ? colors.primary : colors.error },
+                Platform.OS === "ios" && {
+                  shadowColor: isPaused ? colors.primary : colors.error,
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 16,
+                },
               ]}
               onPress={handlePause}
-              activeOpacity={0.85}
+              activeOpacity={0.92}
             >
               <Feather name={isPaused ? "mic" : "pause"} size={28} color="#fff" />
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[styles.controlBtn, { backgroundColor: colors.secondary }]}
             >
-              <Feather name="bookmark" size={22} color={colors.primary} />
-              <Text style={[styles.controlLabel, { color: colors.primary }]}>Mark</Text>
+              <Feather name="bookmark" size={20} color={colors.primary} />
+              <Text style={[styles.controlBtnLabel, { color: colors.primary }]}>Mark</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -287,69 +314,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  closeBtn: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 16, fontWeight: "600" },
   body: { flex: 1, paddingHorizontal: 20, gap: 20 },
-  timerSection: { alignItems: "center", gap: 8 },
-  timer: { fontSize: 56, fontWeight: "300", letterSpacing: -2, fontVariant: ["tabular-nums"] },
-  liveChip: { flexDirection: "row", alignItems: "center", gap: 6 },
+  timerBlock: { alignItems: "center", gap: 8 },
+  timer: { fontSize: 60, fontWeight: "300", letterSpacing: -2, fontVariant: ["tabular-nums"] },
+  liveRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   liveDot: { width: 8, height: 8, borderRadius: 4 },
-  liveText: { fontSize: 11, fontWeight: "700", letterSpacing: 1 },
-  waveformSection: { alignItems: "center" },
-  speakerChips: { flexDirection: "row", gap: 8, justifyContent: "center", flexWrap: "wrap" },
+  liveLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 1 },
+  waveformRow: { alignItems: "center" },
+  speakerRow: { flexDirection: "row", gap: 8, justifyContent: "center", flexWrap: "wrap" },
   speakerChip: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 9999,
     gap: 6,
   },
-  chipName: { fontSize: 12, fontWeight: "500" },
-  transcriptCard: {
-    borderRadius: 16,
-    borderWidth: 0.5,
-    padding: 14,
-    flex: 1,
-    maxHeight: 200,
-    gap: 10,
-  },
-  transcriptHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
-  transcriptLabel: { fontSize: 12, fontWeight: "600" },
-  transcriptScroll: { flex: 1 },
+  speakerChipName: { fontSize: 13 },
+  transcriptCard: { borderRadius: 16, padding: 14, gap: 10 },
+  transcriptLabel: { flexDirection: "row", alignItems: "center", gap: 6 },
+  transcriptLabelText: { fontSize: 12, fontWeight: "600" },
   transcriptLine: { flexDirection: "row", gap: 10, marginBottom: 12 },
-  segSpeaker: { fontSize: 11, fontWeight: "600", marginBottom: 2 },
-  segText: { fontSize: 13, lineHeight: 18 },
-  hints: { gap: 10 },
-  hintRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  segName: { fontSize: 11, fontWeight: "600", marginBottom: 2 },
+  segText: { fontSize: 13, lineHeight: 19 },
+  hints: { gap: 12 },
+  hintRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  hintDot: { width: 26, height: 26, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   hintText: { fontSize: 14 },
-  controls: { padding: 20, alignItems: "center", gap: 20 },
-  recordBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#E24B4A",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  activeControls: { flexDirection: "row", alignItems: "center", gap: 28 },
+  controls: { paddingHorizontal: 20, alignItems: "center", paddingTop: 12 },
+  bigBtn: { width: 72, height: 72, borderRadius: 36, alignItems: "center", justifyContent: "center" },
+  activeControls: { flexDirection: "row", alignItems: "center", gap: 30 },
   controlBtn: {
-    alignItems: "center",
-    justifyContent: "center",
     width: 56,
     height: 56,
     borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
     gap: 4,
   },
-  controlLabel: { fontSize: 10, fontWeight: "500" },
+  controlBtnLabel: { fontSize: 10, fontWeight: "500" },
 });

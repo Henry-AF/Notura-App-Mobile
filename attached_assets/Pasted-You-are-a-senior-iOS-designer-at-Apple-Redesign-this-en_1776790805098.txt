@@ -1,0 +1,29 @@
+You are a senior iOS designer at Apple. Redesign this entire productivity app with a premium, light-mode aesthetic inspired by Apple's Human Interface Guidelines. The result should feel like a native iOS 17+ app — clean, airy, intentional.
+Visual language
+
+Background: pure white #FFFFFF with subtle off-white surface layers #F5F4FA for cards and grouped sections
+Accent color: soft purple #AF52DE — use it sparingly and purposefully (CTAs, active states, progress indicators, icons)
+Typography: SF Pro Display for headings, SF Pro Text for body — if unavailable, use system-ui. Weights: 300 for large display numbers, 400 for body, 500 for labels, 600 for headings only
+Spacing: generous. Minimum 20px horizontal padding. Cards with 16px internal padding and border-radius: 16px
+Shadows: ultra-subtle only — box-shadow: 0 2px 12px rgba(0,0,0,0.06). No heavy drop shadows anywhere
+Borders: avoid hard borders. Use background contrast to separate surfaces instead. When needed: 1px solid rgba(0,0,0,0.07)
+
+Component rules
+
+Buttons: pill-shaped (border-radius: 999px), filled with #AF52DE for primary actions. Secondary buttons are ghost with a soft purple border and purple label
+Input fields: rounded rect (border-radius: 12px), light gray background #F2F1F7, no visible border until focused — on focus, a soft purple 1px border appears
+Cards: white background, 16px radius, subtle shadow. Group related content inside cards like iOS Settings style
+Tab bar: white background, frosted glass effect (backdrop-filter: blur(20px)), icons with labels, active icon fills with accent purple
+Navigation bar: large title style (iOS largeTitle), left-aligned, weight 600, with a subtle separator only when scrolled
+List rows: full-width, 52px minimum height, left icon in a soft colored rounded square (border-radius: 8px), right chevron in #C7C7CC
+Status indicators and tags: soft pastel backgrounds derived from the accent — rgba(175, 82, 222, 0.1) fill with #AF52DE text
+
+Motion and interaction feel (describe in comments)
+
+Transitions: spring-based, 0.3s, ease-out
+Tap feedback: scale down to 0.97 on press
+Appear animations: fade + translate Y 6px upward on mount
+
+Tone
+Every screen should feel calm, focused, and trustworthy. No loud colors, no unnecessary decoration. White space is intentional — let content breathe. If an element doesn't serve a clear purpose, remove it.
+Deliver the full app redesign screen by screen, starting with the Home/Dashboard, then progressing through all main flows. Use real placeholder content (not Lorem Ipsum) relevant to a productivity app.

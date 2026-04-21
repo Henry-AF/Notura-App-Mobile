@@ -18,6 +18,18 @@ import { useColors } from "@/hooks/useColors";
 
 const TAGS = ["All", "Key Metric", "Risk", "Decision", "Highlight"];
 
+function cardShadow() {
+  if (Platform.OS === "ios") {
+    return {
+      shadowColor: "#000" as const,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+    };
+  }
+  return { elevation: 1 as const };
+}
+
 export default function HighlightsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -25,9 +37,8 @@ export default function HighlightsScreen() {
   const { highlights, removeHighlight } = useApp();
   const [activeTag, setActiveTag] = useState("All");
 
-  const filtered = activeTag === "All"
-    ? highlights
-    : highlights.filter((h) => h.tag === activeTag);
+  const filtered =
+    activeTag === "All" ? highlights : highlights.filter((h) => h.tag === activeTag);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 24;
@@ -39,7 +50,7 @@ export default function HighlightsScreen() {
           style={[styles.backBtn, { backgroundColor: colors.secondary }]}
           onPress={() => router.back()}
         >
-          <Feather name="arrow-left" size={20} color={colors.foreground} />
+          <Feather name="arrow-left" size={18} color={colors.foreground} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.foreground }]}>Highlights</Text>
         <View style={{ width: 40 }} />
@@ -48,6 +59,7 @@ export default function HighlightsScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(h) => h.id}
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.list, { paddingBottom: bottomPad }]}
         ListHeaderComponent={
           <View style={styles.tags}>
@@ -61,6 +73,7 @@ export default function HighlightsScreen() {
                   },
                 ]}
                 onPress={() => setActiveTag(tag)}
+                activeOpacity={0.8}
               >
                 <Text
                   style={[
@@ -80,57 +93,47 @@ export default function HighlightsScreen() {
               styles.card,
               {
                 backgroundColor: colors.card,
-                borderColor: colors.border,
                 borderLeftColor: h.speakerColor,
-                borderLeftWidth: 3,
+                ...cardShadow(),
               },
             ]}
           >
             <View style={styles.cardHeader}>
               <Avatar initials={h.speakerInitials} color={h.speakerColor} size={24} />
-              <Text style={[styles.speaker, { color: h.speakerColor }]}>
-                {h.speakerName}
-              </Text>
+              <Text style={[styles.speakerName, { color: h.speakerColor }]}>{h.speakerName}</Text>
               <Text style={[styles.time, { color: colors.gray400 }]}>{h.timeLabel}</Text>
               {h.tag && <Badge label={h.tag} variant="primary" />}
-              <TouchableOpacity
-                style={styles.deleteBtn}
-                onPress={() => removeHighlight(h.id)}
-              >
+              <TouchableOpacity onPress={() => removeHighlight(h.id)} style={styles.deleteBtn}>
                 <Feather name="trash-2" size={13} color={colors.gray300} />
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.text, { color: colors.gray700 }]}>
-              "{h.text}"
-            </Text>
+            <Text style={[styles.quote, { color: colors.gray700 }]}>"{h.text}"</Text>
 
             <TouchableOpacity
               style={styles.source}
               onPress={() => router.push(`/conversation/${h.conversationId}`)}
+              activeOpacity={0.7}
             >
               <Feather name="file-text" size={11} color={colors.gray400} />
-              <Text style={[styles.sourceText, { color: colors.gray400 }]}>
-                {h.conversationTitle}
-              </Text>
-              <Text style={[styles.date, { color: colors.gray300 }]}>
-                {h.createdAt}
-              </Text>
+              <Text style={[styles.sourceTitle, { color: colors.gray400 }]}>{h.conversationTitle}</Text>
+              <Text style={[styles.sourceDate, { color: colors.gray300 }]}>{h.createdAt}</Text>
             </TouchableOpacity>
           </View>
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Feather name="bookmark" size={36} color={colors.gray300} />
-            <Text style={[styles.emptyTitle, { color: colors.gray500 }]}>
+            <View style={[styles.emptyIcon, { backgroundColor: colors.secondary }]}>
+              <Feather name="bookmark" size={28} color={colors.gray300} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
               No highlights yet
             </Text>
-            <Text style={[styles.emptySub, { color: colors.gray400 }]}>
-              Bookmark key moments inside conversations
+            <Text style={[styles.emptySub, { color: colors.gray500 }]}>
+              Bookmark key moments inside conversations to see them here
             </Text>
           </View>
         }
-        showsVerticalScrollIndicator={false}
       />
     </View>
   );
@@ -147,20 +150,27 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   title: { fontSize: 20, fontWeight: "700" },
-  list: { paddingHorizontal: 20, gap: 10 },
-  tags: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
-  tagChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 9999 },
+  list: { paddingHorizontal: 20, paddingTop: 4 },
+  tags: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
+  tagChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9999 },
   tagText: { fontSize: 13, fontWeight: "500" },
-  card: { borderRadius: 16, borderWidth: 0.5, padding: 14, gap: 10, marginBottom: 2 },
+  card: {
+    borderRadius: 16,
+    padding: 14,
+    gap: 10,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+  },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
-  speaker: { fontSize: 12, fontWeight: "600", flex: 1 },
+  speakerName: { fontSize: 12, fontWeight: "600", flex: 1 },
   time: { fontSize: 11 },
   deleteBtn: { padding: 4 },
-  text: { fontSize: 14, lineHeight: 22, fontStyle: "italic" },
+  quote: { fontSize: 14, lineHeight: 22, fontStyle: "italic" },
   source: { flexDirection: "row", alignItems: "center", gap: 5 },
-  sourceText: { fontSize: 11, flex: 1 },
-  date: { fontSize: 11 },
-  empty: { alignItems: "center", paddingTop: 80, gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: "600" },
-  emptySub: { fontSize: 13 },
+  sourceTitle: { fontSize: 11, flex: 1 },
+  sourceDate: { fontSize: 11 },
+  empty: { alignItems: "center", paddingTop: 80, gap: 10 },
+  emptyIcon: { width: 72, height: 72, borderRadius: 22, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  emptyTitle: { fontSize: 17, fontWeight: "600" },
+  emptySub: { fontSize: 14, textAlign: "center", paddingHorizontal: 40 },
 });

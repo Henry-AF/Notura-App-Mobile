@@ -20,29 +20,33 @@ import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { mockSpaces, type Space } from "@/lib/mockData";
 
-const SPACE_COLORS = ["#5341CD", "#1D9E75", "#EF9F27", "#378ADD", "#E24B4A", "#707090"];
-const SPACE_ICONS = ["briefcase", "code", "star", "user", "globe", "heart", "zap", "book"];
+const SPACE_COLORS = ["#AF52DE", "#34C759", "#FF9500", "#007AFF", "#FF3B30", "#5856D6"];
+
+function cardShadow() {
+  if (Platform.OS === "ios") {
+    return {
+      shadowColor: "#000" as const,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+    };
+  }
+  return { elevation: 1 as const };
+}
 
 function SpaceCard({ space, onPress }: { space: Space; onPress: () => void }) {
   const colors = useColors();
   return (
     <TouchableOpacity
-      style={[
-        styles.spaceCard,
-        { backgroundColor: colors.card, borderColor: colors.border },
-      ]}
+      style={[styles.spaceCard, { backgroundColor: colors.card, ...cardShadow() }]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.97}
     >
-      <View
-        style={[styles.spaceIcon, { backgroundColor: space.color + "20" }]}
-      >
+      <View style={[styles.spaceIconWrap, { backgroundColor: space.color + "18" }]}>
         <Feather name={space.icon as any} size={22} color={space.color} />
       </View>
-      <View style={styles.spaceInfo}>
-        <Text style={[styles.spaceName, { color: colors.foreground }]}>
-          {space.name}
-        </Text>
+      <View style={styles.spaceBody}>
+        <Text style={[styles.spaceName, { color: colors.foreground }]}>{space.name}</Text>
         {space.description && (
           <Text style={[styles.spaceDesc, { color: colors.gray500 }]} numberOfLines={1}>
             {space.description}
@@ -52,7 +56,7 @@ function SpaceCard({ space, onPress }: { space: Space; onPress: () => void }) {
           {space.conversationCount} conversation{space.conversationCount !== 1 ? "s" : ""}
         </Text>
       </View>
-      <Feather name="chevron-right" size={18} color={colors.gray300} />
+      <Feather name="chevron-right" size={16} color={colors.gray300} />
     </TouchableOpacity>
   );
 }
@@ -62,7 +66,6 @@ export default function SpacesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { conversations } = useApp();
-
   const [selectedSpace, setSelectedSpace] = useState<Space | null>(null);
   const [createVisible, setCreateVisible] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState("");
@@ -74,53 +77,43 @@ export default function SpacesScreen() {
   }, [conversations, selectedSpace]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top + 8;
+  const bottomPad = Platform.OS === "web" ? 34 + 84 : insets.bottom + 100;
 
   if (selectedSpace) {
     return (
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { paddingTop: topPad }]}>
           <TouchableOpacity
+            style={[styles.backBtn, { backgroundColor: colors.secondary }]}
             onPress={() => setSelectedSpace(null)}
-            style={styles.backBtn}
           >
             <Feather name="arrow-left" size={20} color={colors.foreground} />
           </TouchableOpacity>
           <View style={styles.spaceTitleRow}>
-            <View
-              style={[
-                styles.spaceHeaderIcon,
-                { backgroundColor: selectedSpace.color + "20" },
-              ]}
-            >
-              <Feather
-                name={selectedSpace.icon as any}
-                size={16}
-                color={selectedSpace.color}
-              />
+            <View style={[styles.spaceTitleIcon, { backgroundColor: selectedSpace.color + "18" }]}>
+              <Feather name={selectedSpace.icon as any} size={15} color={selectedSpace.color} />
             </View>
-            <Text style={[styles.spaceHeaderTitle, { color: colors.foreground }]}>
+            <Text style={[styles.spaceTitleText, { color: colors.foreground }]}>
               {selectedSpace.name}
             </Text>
           </View>
-          <View style={{ width: 36 }} />
+          <View style={{ width: 40 }} />
         </View>
-
         <FlatList
           data={spaceConversations}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <ConversationCard conversation={item} />}
-          contentContainerStyle={[
-            styles.list,
-            { paddingBottom: Platform.OS === "web" ? 34 + 84 : insets.bottom + 100 },
-          ]}
+          contentContainerStyle={[styles.flatList, { paddingBottom: bottomPad }]}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Feather name="folder" size={36} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.gray500 }]}>
-                No conversations in {selectedSpace.name}
+              <View style={[styles.emptyIcon, { backgroundColor: colors.secondary }]}>
+                <Feather name="folder" size={28} color={colors.gray300} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
+                No conversations yet
               </Text>
-              <Text style={[styles.emptySub, { color: colors.gray400 }]}>
-                Record or move a conversation here
+              <Text style={[styles.emptySub, { color: colors.gray500 }]}>
+                Record a meeting and assign it to {selectedSpace.name}
               </Text>
             </View>
           }
@@ -143,55 +136,50 @@ export default function SpacesScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: Platform.OS === "web" ? 34 + 84 : insets.bottom + 100 },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.sectionLabel, { color: colors.gray500 }]}>
-          Your spaces
-        </Text>
+        <Text style={[styles.sectionLabel, { color: colors.gray500 }]}>YOUR SPACES</Text>
         {mockSpaces.map((space) => (
-          <SpaceCard
-            key={space.id}
-            space={space}
-            onPress={() => setSelectedSpace(space)}
-          />
+          <SpaceCard key={space.id} space={space} onPress={() => setSelectedSpace(space)} />
         ))}
 
-        <View
-          style={[
-            styles.sharedBanner,
-            { backgroundColor: colors.brandSubtle, borderColor: colors.border },
-          ]}
+        <TouchableOpacity
+          style={[styles.sharedCard, { backgroundColor: colors.card, ...cardShadow() }]}
+          activeOpacity={0.97}
         >
-          <Feather name="users" size={18} color={colors.primary} />
+          <View style={[styles.sharedIcon, { backgroundColor: colors.info + "15" }]}>
+            <Feather name="users" size={20} color={colors.info} />
+          </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.sharedTitle, { color: colors.primary }]}>
+            <Text style={[styles.sharedTitle, { color: colors.foreground }]}>
               Shared with me
             </Text>
             <Text style={[styles.sharedSub, { color: colors.gray500 }]}>
-              3 conversations from team members
+              3 conversations from your team
             </Text>
           </View>
-          <Feather name="chevron-right" size={16} color={colors.primary} />
-        </View>
+          <Feather name="chevron-right" size={16} color={colors.gray300} />
+        </TouchableOpacity>
       </ScrollView>
 
       <Modal visible={createVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={[styles.modalRoot, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>New Space</Text>
-            <TouchableOpacity onPress={() => setCreateVisible(false)}>
-              <Feather name="x" size={22} color={colors.gray500} />
+            <TouchableOpacity
+              style={[styles.modalClose, { backgroundColor: colors.secondary }]}
+              onPress={() => setCreateVisible(false)}
+            >
+              <Feather name="x" size={18} color={colors.gray500} />
             </TouchableOpacity>
           </View>
+
           <View style={styles.modalBody}>
             <TextInput
               style={[
                 styles.nameInput,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground },
+                { backgroundColor: colors.input, color: colors.foreground },
               ]}
               value={newSpaceName}
               onChangeText={setNewSpaceName}
@@ -199,7 +187,8 @@ export default function SpacesScreen() {
               placeholderTextColor={colors.gray300}
               autoFocus
             />
-            <Text style={[styles.colorLabel, { color: colors.gray600 }]}>Color</Text>
+
+            <Text style={[styles.colorSectionLabel, { color: colors.gray500 }]}>COLOR</Text>
             <View style={styles.colorRow}>
               {SPACE_COLORS.map((c) => (
                 <TouchableOpacity
@@ -217,10 +206,13 @@ export default function SpacesScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+
             <TouchableOpacity
               style={[
                 styles.createBtn,
-                { backgroundColor: newSpaceName.trim() ? colors.primary : colors.secondary },
+                {
+                  backgroundColor: newSpaceName.trim() ? colors.primary : colors.secondary,
+                },
               ]}
               onPress={() => {
                 if (!newSpaceName.trim()) return;
@@ -230,7 +222,7 @@ export default function SpacesScreen() {
             >
               <Text
                 style={[
-                  styles.createText,
+                  styles.createBtnText,
                   { color: newSpaceName.trim() ? "#fff" : colors.gray400 },
                 ]}
               >
@@ -254,80 +246,73 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   title: { fontSize: 28, fontWeight: "700", letterSpacing: -0.5 },
-  addBtn: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  backBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  addBtn: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  backBtn: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   spaceTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  spaceHeaderIcon: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  spaceHeaderTitle: { fontSize: 17, fontWeight: "600" },
+  spaceTitleIcon: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  spaceTitleText: { fontSize: 17, fontWeight: "600" },
   scroll: { paddingHorizontal: 20, gap: 10 },
-  list: { paddingHorizontal: 20, paddingTop: 8 },
+  flatList: { paddingHorizontal: 20, paddingTop: 8 },
   sectionLabel: {
     fontSize: 12,
     fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
     marginTop: 4,
+    marginBottom: 2,
   },
   spaceCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    borderRadius: 14,
-    borderWidth: 0.5,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
   },
-  spaceIcon: { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  spaceInfo: { flex: 1, gap: 2 },
+  spaceIconWrap: { width: 50, height: 50, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  spaceBody: { flex: 1, gap: 2 },
   spaceName: { fontSize: 15, fontWeight: "600" },
   spaceDesc: { fontSize: 12 },
   spaceCount: { fontSize: 11 },
-  sharedBanner: {
+  sharedCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    borderRadius: 14,
-    borderWidth: 0.5,
-    padding: 14,
+    gap: 14,
+    borderRadius: 16,
+    padding: 16,
     marginTop: 8,
   },
-  sharedTitle: { fontSize: 14, fontWeight: "600" },
-  sharedSub: { fontSize: 12, marginTop: 1 },
-  empty: { alignItems: "center", paddingTop: 60, gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: "600" },
-  emptySub: { fontSize: 13 },
+  sharedIcon: { width: 50, height: 50, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  sharedTitle: { fontSize: 15, fontWeight: "500" },
+  sharedSub: { fontSize: 12, marginTop: 2 },
+  empty: { alignItems: "center", paddingTop: 80, gap: 10 },
+  emptyIcon: { width: 72, height: 72, borderRadius: 22, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  emptyTitle: { fontSize: 17, fontWeight: "600" },
+  emptySub: { fontSize: 14, color: "#8E8E93", textAlign: "center", paddingHorizontal: 40 },
   modalRoot: { flex: 1 },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
+    paddingHorizontal: 20,
     paddingTop: Platform.OS === "web" ? 67 : 16,
+    paddingBottom: 16,
   },
   modalTitle: { fontSize: 20, fontWeight: "700" },
-  modalBody: { padding: 20, gap: 16 },
+  modalClose: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  modalBody: { paddingHorizontal: 20, gap: 16 },
   nameInput: {
     height: 52,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 16,
   },
-  colorLabel: { fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
+  colorSectionLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.6,
+  },
   colorRow: { flexDirection: "row", gap: 12 },
-  colorDot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  colorDotSelected: { borderWidth: 2, borderColor: "#fff" },
-  createBtn: {
-    height: 52,
-    borderRadius: 9999,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 8,
-  },
-  createText: { fontSize: 16, fontWeight: "600" },
+  colorDot: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  colorDotSelected: { borderWidth: 2.5, borderColor: "#fff" },
+  createBtn: { height: 52, borderRadius: 9999, alignItems: "center", justifyContent: "center", marginTop: 8 },
+  createBtnText: { fontSize: 16, fontWeight: "600" },
 });

@@ -1,6 +1,6 @@
 import { BlurView } from "expo-blur";
-import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 
@@ -19,12 +19,12 @@ function ClassicTabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
+        tabBarInactiveTintColor: colors.gray400,
         headerShown: false,
         tabBarStyle: {
           position: "absolute",
           backgroundColor: isIOS ? "transparent" : colors.card,
-          borderTopWidth: 0.5,
+          borderTopWidth: isIOS ? 0 : 0.5,
           borderTopColor: colors.border,
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
@@ -32,22 +32,17 @@ function ClassicTabLayout() {
         tabBarBackground: () =>
           isIOS ? (
             <BlurView
-              intensity={100}
-              tint={isDark ? "dark" : "light"}
+              intensity={80}
+              tint={isDark ? "systemThickMaterialDark" : "systemThickMaterialLight"}
               style={StyleSheet.absoluteFill}
             />
-          ) : isWeb ? (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: colors.card },
-              ]}
-            />
-          ) : null,
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]} />
+          ),
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: "500",
-          marginBottom: 4,
+          marginBottom: isIOS ? 0 : 4,
         },
       }}
     >
@@ -92,14 +87,10 @@ function ClassicTabLayout() {
 
 export default function TabLayout() {
   const { pricingVisible, setPricingVisible } = useApp();
-
   return (
     <>
       <ClassicTabLayout />
-      <PricingModal
-        visible={pricingVisible}
-        onClose={() => setPricingVisible(false)}
-      />
+      <PricingModal visible={pricingVisible} onClose={() => setPricingVisible(false)} />
     </>
   );
 }

@@ -1,5 +1,4 @@
 import { Feather } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
   Platform,
@@ -12,7 +11,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/Avatar";
-import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { SPEAKERS, mockStats } from "@/lib/mockData";
 
@@ -25,41 +23,62 @@ const WEEK_DATA = [
   { day: "Sat", hours: 0 },
   { day: "Sun", hours: 0 },
 ];
-const MAX_HOURS = 4;
+const MAX_HOURS = 3.5;
+
+function Card({ children, style }: { children: React.ReactNode; style?: any }) {
+  const colors = useColors();
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.card },
+        Platform.OS === "ios" && {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 12,
+        },
+        Platform.OS === "android" && { elevation: 2 },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
 
 export default function AnalyticsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { conversations } = useApp();
   const [period, setPeriod] = useState<"week" | "month">("week");
 
   const topPad = Platform.OS === "web" ? 67 : insets.top + 8;
   const bottomPad = Platform.OS === "web" ? 34 + 84 : insets.bottom + 100;
 
   const speakerList = Object.values(SPEAKERS);
-  const myRatio = mockStats.talkToListenRatio;
+  const talkRatio = mockStats.talkToListenRatio;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: topPad }]}>
         <Text style={[styles.title, { color: colors.foreground }]}>Analytics</Text>
-        <View style={styles.periodToggle}>
+        <View style={[styles.periodToggle, { backgroundColor: colors.secondary }]}>
           {(["week", "month"] as const).map((p) => (
             <TouchableOpacity
               key={p}
               style={[
                 styles.periodBtn,
-                { backgroundColor: period === p ? colors.primary : "transparent" },
+                period === p && [styles.periodBtnActive, { backgroundColor: colors.card }],
               ]}
               onPress={() => setPeriod(p)}
             >
               <Text
                 style={[
                   styles.periodText,
-                  { color: period === p ? "#fff" : colors.gray500 },
+                  { color: period === p ? colors.foreground : colors.gray500 },
                 ]}
               >
-                {p === "week" ? "This week" : "This month"}
+                {p === "week" ? "This week" : "Month"}
               </Text>
             </TouchableOpacity>
           ))}
@@ -73,46 +92,24 @@ export default function AnalyticsScreen() {
         <View style={styles.kpiRow}>
           {[
             { label: "Conversations", value: period === "week" ? "5" : "18", icon: "calendar", color: colors.primary },
-            { label: "Hours recorded", value: period === "week" ? "8.3h" : "24.2h", icon: "clock", color: colors.success },
-            { label: "Action items", value: period === "week" ? "12" : "38", icon: "check-square", color: colors.warning },
+            { label: "Hours", value: period === "week" ? "8.3" : "24.2", icon: "clock", color: colors.success },
+            { label: "Actions", value: period === "week" ? "12" : "38", icon: "check-square", color: colors.warning },
           ].map((kpi) => (
-            <View
-              key={kpi.label}
-              style={[
-                styles.kpiCard,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              <View
-                style={[
-                  styles.kpiIcon,
-                  { backgroundColor: kpi.color + "18" },
-                ]}
-              >
-                <Feather name={kpi.icon as any} size={16} color={kpi.color} />
+            <Card key={kpi.label} style={styles.kpiCard}>
+              <View style={[styles.kpiIconWrap, { backgroundColor: kpi.color + "15" }]}>
+                <Feather name={kpi.icon as any} size={15} color={kpi.color} />
               </View>
-              <Text style={[styles.kpiValue, { color: colors.foreground }]}>
-                {kpi.value}
-              </Text>
-              <Text style={[styles.kpiLabel, { color: colors.gray500 }]}>
-                {kpi.label}
-              </Text>
-            </View>
+              <Text style={[styles.kpiValue, { color: colors.foreground }]}>{kpi.value}</Text>
+              <Text style={[styles.kpiLabel, { color: colors.gray500 }]}>{kpi.label}</Text>
+            </Card>
           ))}
         </View>
 
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-            Recording activity
-          </Text>
+        <Card>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>Recording activity</Text>
           <View style={styles.barChart}>
             {WEEK_DATA.map((d) => {
-              const barH = d.hours === 0 ? 4 : Math.max((d.hours / MAX_HOURS) * 80, 8);
+              const barH = d.hours === 0 ? 3 : Math.max((d.hours / MAX_HOURS) * 72, 6);
               const isToday = d.day === "Thu";
               return (
                 <View key={d.day} style={styles.barCol}>
@@ -122,7 +119,7 @@ export default function AnalyticsScreen() {
                         styles.bar,
                         {
                           height: barH,
-                          backgroundColor: isToday ? colors.primary : colors.brandSubtle,
+                          backgroundColor: isToday ? colors.primary : colors.secondary,
                           borderRadius: 4,
                         },
                       ]}
@@ -131,7 +128,10 @@ export default function AnalyticsScreen() {
                   <Text
                     style={[
                       styles.barLabel,
-                      { color: isToday ? colors.primary : colors.gray400, fontWeight: isToday ? "600" : "400" },
+                      {
+                        color: isToday ? colors.primary : colors.gray400,
+                        fontWeight: isToday ? "600" : "400",
+                      },
                     ]}
                   >
                     {d.day}
@@ -140,124 +140,81 @@ export default function AnalyticsScreen() {
               );
             })}
           </View>
-        </View>
+        </Card>
 
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
+        <Card>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>
             Talk · Listen ratio
           </Text>
           <View style={styles.ratioSection}>
-            <View style={styles.ratioBar}>
+            <View style={[styles.ratioTrack, { backgroundColor: colors.secondary }]}>
               <View
                 style={[
                   styles.ratioFill,
-                  { width: `${myRatio}%` as any, backgroundColor: colors.primary },
-                ]}
-              />
-              <View
-                style={[
-                  styles.ratioFill,
-                  { flex: 1, backgroundColor: colors.success },
+                  { width: `${talkRatio}%` as any, backgroundColor: colors.primary },
                 ]}
               />
             </View>
-            <View style={styles.ratioLabels}>
-              <View style={styles.ratioLabelItem}>
+            <View style={styles.ratioRow}>
+              <View style={styles.ratioItem}>
                 <View style={[styles.ratioDot, { backgroundColor: colors.primary }]} />
                 <Text style={[styles.ratioLabel, { color: colors.gray600 }]}>
-                  You talk {myRatio}%
+                  You talk {talkRatio}%
                 </Text>
               </View>
-              <View style={styles.ratioLabelItem}>
-                <View style={[styles.ratioDot, { backgroundColor: colors.success }]} />
+              <View style={styles.ratioItem}>
+                <View style={[styles.ratioDot, { backgroundColor: colors.secondary }]} />
                 <Text style={[styles.ratioLabel, { color: colors.gray600 }]}>
-                  Listen {100 - myRatio}%
+                  Listen {100 - talkRatio}%
                 </Text>
               </View>
             </View>
-            <View
-              style={[
-                styles.ratioBadge,
-                { backgroundColor: colors.successBg },
-              ]}
-            >
-              <Feather name="trending-up" size={12} color={colors.success} />
-              <Text style={[styles.ratioBadgeText, { color: colors.success }]}>
-                Above average listener · Keep it up!
+            <View style={[styles.insightRow, { backgroundColor: colors.successBg }]}>
+              <Feather name="trending-up" size={13} color={colors.success} />
+              <Text style={[styles.insightText, { color: colors.success }]}>
+                Above average listener — keep it up!
               </Text>
             </View>
           </View>
-        </View>
+        </Card>
 
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-            Speaker breakdown
-          </Text>
+        <Card>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>Speakers</Text>
           <View style={styles.speakerList}>
             {speakerList.map((sp) => (
               <View key={sp.id} style={styles.speakerRow}>
                 <Avatar initials={sp.initials} color={sp.color} size={36} />
-                <View style={styles.speakerInfo}>
+                <View style={{ flex: 1 }}>
                   <View style={styles.speakerNameRow}>
-                    <Text style={[styles.speakerName, { color: colors.foreground }]}>
-                      {sp.name}
-                    </Text>
-                    <Text style={[styles.speakerPercent, { color: colors.primary }]}>
+                    <Text style={[styles.speakerName, { color: colors.foreground }]}>{sp.name}</Text>
+                    <Text style={[styles.speakerPct, { color: colors.primary }]}>
                       {sp.talkTimePercent}%
                     </Text>
                   </View>
-                  <View style={styles.speakerTrack}>
+                  <View style={[styles.speakerTrack, { backgroundColor: colors.secondary }]}>
                     <View
                       style={[
                         styles.speakerFill,
-                        {
-                          width: `${sp.talkTimePercent}%` as any,
-                          backgroundColor: sp.color,
-                        },
+                        { width: `${sp.talkTimePercent}%` as any, backgroundColor: sp.color },
                       ]}
                     />
                   </View>
-                  <Text style={[styles.speakerWords, { color: colors.gray500 }]}>
-                    {sp.wordCount.toLocaleString()} words
-                  </Text>
                 </View>
               </View>
             ))}
           </View>
-        </View>
+        </Card>
 
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-            Top topics
-          </Text>
+        <Card>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>Top topics</Text>
           <View style={styles.topicsWrap}>
             {mockStats.topTopics.map((topic, idx) => {
-              const sizes = [18, 16, 15, 14, 13, 12];
-              const opacities = [1, 0.85, 0.7, 0.6, 0.55, 0.5];
+              const sizes = [20, 17, 15, 14, 13, 12];
+              const opacities = [1, 0.85, 0.75, 0.65, 0.55, 0.50];
               return (
                 <View
                   key={topic}
-                  style={[
-                    styles.topicChip,
-                    {
-                      backgroundColor: colors.primary + "18",
-                    },
-                  ]}
+                  style={[styles.topicChip, { backgroundColor: colors.brandSubtle }]}
                 >
                   <Text
                     style={[
@@ -275,41 +232,34 @@ export default function AnalyticsScreen() {
               );
             })}
           </View>
-        </View>
+        </Card>
 
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-            Action item completion
-          </Text>
-          <View style={styles.completionSection}>
-            <View style={styles.completionArc}>
+        <Card>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>Action completion</Text>
+          <View style={styles.completionRow}>
+            <View style={styles.completionLeft}>
               <Text style={[styles.completionPct, { color: colors.foreground }]}>78%</Text>
               <Text style={[styles.completionSub, { color: colors.gray500 }]}>completed</Text>
             </View>
-            <View style={styles.completionStats}>
+            <View style={{ flex: 1, gap: 10 }}>
               {[
-                { label: "Completed", value: "29", color: colors.success },
-                { label: "Open", value: "6", color: colors.warning },
-                { label: "Overdue", value: "3", color: colors.error },
+                { label: "Completed", value: 29, color: colors.success },
+                { label: "Open", value: 6, color: colors.warning },
+                { label: "Overdue", value: 3, color: colors.error },
               ].map((s) => (
-                <View key={s.label} style={styles.completionRow}>
+                <View key={s.label} style={styles.completionItem}>
                   <View style={[styles.completionDot, { backgroundColor: s.color }]} />
-                  <Text style={[styles.completionLabel, { color: colors.gray600 }]}>
+                  <Text style={[styles.completionItemLabel, { color: colors.gray600 }]}>
                     {s.label}
                   </Text>
-                  <Text style={[styles.completionVal, { color: colors.foreground }]}>
+                  <Text style={[styles.completionItemVal, { color: colors.foreground }]}>
                     {s.value}
                   </Text>
                 </View>
               ))}
             </View>
           </View>
-        </View>
+        </Card>
       </ScrollView>
     </View>
   );
@@ -320,102 +270,85 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 12,
-    gap: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   title: { fontSize: 28, fontWeight: "700", letterSpacing: -0.5 },
   periodToggle: {
     flexDirection: "row",
-    backgroundColor: "rgba(83,65,205,0.08)",
     borderRadius: 10,
     padding: 3,
-    alignSelf: "flex-start",
   },
   periodBtn: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
   },
+  periodBtnActive: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 1,
+  },
   periodText: { fontSize: 13, fontWeight: "500" },
   scroll: { paddingHorizontal: 20, gap: 14 },
+  card: { borderRadius: 16, padding: 16, gap: 14 },
   kpiRow: { flexDirection: "row", gap: 10 },
-  kpiCard: {
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: 0.5,
-    padding: 12,
-    gap: 4,
-    alignItems: "center",
-  },
-  kpiIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 9,
+  kpiCard: { flex: 1, alignItems: "center", gap: 5, paddingVertical: 16 },
+  kpiIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 2,
   },
-  kpiValue: { fontSize: 20, fontWeight: "700", letterSpacing: -0.5 },
-  kpiLabel: { fontSize: 10, textAlign: "center" },
-  card: {
-    borderRadius: 16,
-    borderWidth: 0.5,
-    padding: 16,
-    gap: 14,
-  },
+  kpiValue: { fontSize: 22, fontWeight: "600", letterSpacing: -0.5 },
+  kpiLabel: { fontSize: 11, textAlign: "center" },
   cardTitle: { fontSize: 15, fontWeight: "600" },
-  barChart: { flexDirection: "row", alignItems: "flex-end", gap: 6, height: 100 },
+  barChart: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 5,
+    height: 90,
+  },
   barCol: { flex: 1, alignItems: "center", gap: 6 },
   barTrack: { flex: 1, justifyContent: "flex-end", width: "100%" },
   bar: { width: "100%" },
   barLabel: { fontSize: 10 },
   ratioSection: { gap: 12 },
-  ratioBar: {
-    flexDirection: "row",
-    height: 10,
-    borderRadius: 5,
-    overflow: "hidden",
-  },
+  ratioTrack: { height: 10, borderRadius: 5, overflow: "hidden" },
   ratioFill: { height: 10 },
-  ratioLabels: { flexDirection: "row", gap: 20 },
-  ratioLabelItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+  ratioRow: { flexDirection: "row", gap: 20 },
+  ratioItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   ratioDot: { width: 8, height: 8, borderRadius: 4 },
   ratioLabel: { fontSize: 13 },
-  ratioBadge: {
+  insightRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
     padding: 10,
     borderRadius: 10,
   },
-  ratioBadgeText: { fontSize: 12, fontWeight: "500" },
+  insightText: { fontSize: 13, fontWeight: "500" },
   speakerList: { gap: 14 },
   speakerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  speakerInfo: { flex: 1, gap: 4 },
-  speakerNameRow: { flexDirection: "row", justifyContent: "space-between" },
+  speakerNameRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 5 },
   speakerName: { fontSize: 14, fontWeight: "500" },
-  speakerPercent: { fontSize: 14, fontWeight: "600" },
-  speakerTrack: {
-    height: 6,
-    backgroundColor: "rgba(83,65,205,0.08)",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
+  speakerPct: { fontSize: 14, fontWeight: "600" },
+  speakerTrack: { height: 6, borderRadius: 3, overflow: "hidden" },
   speakerFill: { height: 6, borderRadius: 3 },
-  speakerWords: { fontSize: 11 },
   topicsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  topicChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 9999,
-  },
+  topicChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9999 },
   topicText: { fontWeight: "600" },
-  completionSection: { flexDirection: "row", alignItems: "center", gap: 20 },
-  completionArc: { alignItems: "center", gap: 2 },
-  completionPct: { fontSize: 28, fontWeight: "700", letterSpacing: -1 },
+  completionRow: { flexDirection: "row", alignItems: "center", gap: 24 },
+  completionLeft: { alignItems: "center" },
+  completionPct: { fontSize: 36, fontWeight: "300", letterSpacing: -1 },
   completionSub: { fontSize: 12 },
-  completionStats: { flex: 1, gap: 10 },
-  completionRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  completionItem: { flexDirection: "row", alignItems: "center", gap: 8 },
   completionDot: { width: 8, height: 8, borderRadius: 4 },
-  completionLabel: { fontSize: 13, flex: 1 },
-  completionVal: { fontSize: 14, fontWeight: "600" },
+  completionItemLabel: { fontSize: 13, flex: 1 },
+  completionItemVal: { fontSize: 15, fontWeight: "600" },
 });
