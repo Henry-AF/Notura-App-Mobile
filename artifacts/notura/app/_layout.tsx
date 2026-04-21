@@ -25,11 +25,15 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
-        name="meeting/[id]"
+        name="conversation/[id]"
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen
-        name="profile"
+        name="record"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="highlights"
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen

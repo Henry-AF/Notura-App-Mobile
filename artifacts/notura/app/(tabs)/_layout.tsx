@@ -1,39 +1,12 @@
 import { BlurView } from "expo-blur";
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
-import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
-import { CreateMeetingModal } from "@/components/CreateMeetingModal";
 import { PricingModal } from "@/components/PricingModal";
-
-function NativeTabLayout() {
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "house", selected: "house.fill" }} />
-        <Label>Home</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="meetings">
-        <Icon sf={{ default: "calendar", selected: "calendar.fill" }} />
-        <Label>Meetings</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="tasks">
-        <Icon sf={{ default: "checklist", selected: "checklist" }} />
-        <Label>Tasks</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="contacts">
-        <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
-        <Label>Contacts</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
-}
 
 function ClassicTabLayout() {
   const colors = useColors();
@@ -82,48 +55,35 @@ function ClassicTabLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="house" tintColor={color} size={24} />
-            ) : (
-              <Feather name="home" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color }) => <Feather name="home" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="meetings"
+        name="search"
         options={{
-          title: "Meetings",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="calendar" tintColor={color} size={24} />
-            ) : (
-              <Feather name="calendar" size={22} color={color} />
-            ),
+          title: "Search",
+          tabBarIcon: ({ color }) => <Feather name="search" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="tasks"
+        name="spaces"
         options={{
-          title: "Tasks",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="checklist" tintColor={color} size={24} />
-            ) : (
-              <Feather name="check-square" size={22} color={color} />
-            ),
+          title: "Spaces",
+          tabBarIcon: ({ color }) => <Feather name="folder" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="contacts"
+        name="analytics"
         options={{
-          title: "Contacts",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="person.2" tintColor={color} size={24} />
-            ) : (
-              <Feather name="users" size={22} color={color} />
-            ),
+          title: "Analytics",
+          tabBarIcon: ({ color }) => <Feather name="bar-chart-2" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />,
         }}
       />
     </Tabs>
@@ -131,24 +91,14 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  const { pricingVisible, setPricingVisible, createMeetingVisible, setCreateMeetingVisible } = useApp();
-
-  const layout = isLiquidGlassAvailable() ? (
-    <NativeTabLayout />
-  ) : (
-    <ClassicTabLayout />
-  );
+  const { pricingVisible, setPricingVisible } = useApp();
 
   return (
     <>
-      {layout}
+      <ClassicTabLayout />
       <PricingModal
         visible={pricingVisible}
         onClose={() => setPricingVisible(false)}
-      />
-      <CreateMeetingModal
-        visible={createMeetingVisible}
-        onClose={() => setCreateMeetingVisible(false)}
       />
     </>
   );

@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
@@ -13,13 +14,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/Avatar";
-import { InsightCard } from "@/components/InsightCard";
-import { MeetingCard } from "@/components/MeetingCard";
-import { StatCard } from "@/components/StatCard";
-import { TaskCard } from "@/components/TaskCard";
+import { Badge } from "@/components/Badge";
+import { ConversationCard } from "@/components/ConversationCard";
+import { WaveformBars } from "@/components/WaveformBars";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { mockInsight, mockStats } from "@/lib/mockData";
+import { mockStats } from "@/lib/mockData";
 
 function greeting() {
   const h = new Date().getHours();
@@ -28,41 +28,26 @@ function greeting() {
   return "Good evening";
 }
 
-export default function DashboardScreen() {
+export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const {
-    meetings,
-    tasks,
-    toggleTask,
-    currentUser,
-    setPricingVisible,
-    setCreateMeetingVisible,
-  } = useApp();
+  const { conversations, currentUser, setPricingVisible } = useApp();
 
-  const recentMeetings = useMemo(
-    () => meetings.filter((m) => m.status !== "failed").slice(0, 3),
-    [meetings]
+  const recent = useMemo(
+    () => conversations.filter((c) => c.status !== "failed").slice(0, 4),
+    [conversations]
   );
 
-  const todayTasks = useMemo(
-    () => tasks.filter((t) => !t.completed).slice(0, 4),
-    [tasks]
-  );
-
-  const topPaddingWeb = Platform.OS === "web" ? 67 : insets.top + 8;
+  const topPad = Platform.OS === "web" ? 67 : insets.top + 8;
+  const bottomPad = Platform.OS === "web" ? 34 + 84 : insets.bottom + 100;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingTop: topPaddingWeb,
-            paddingBottom:
-              Platform.OS === "web" ? 34 : insets.bottom + 100,
-          },
+          styles.scroll,
+          { paddingTop: topPad, paddingBottom: bottomPad },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -75,143 +60,137 @@ export default function DashboardScreen() {
               {currentUser.name.split(" ")[0]}
             </Text>
           </View>
-          <View style={styles.topActions}>
+          <View style={styles.topRight}>
             <TouchableOpacity
               style={[
                 styles.iconBtn,
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
               onPress={() => setPricingVisible(true)}
-              activeOpacity={0.7}
             >
               <Feather name="zap" size={18} color={colors.primary} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => router.push("/profile")}
+              onPress={() => router.push("/(tabs)/profile")}
               activeOpacity={0.8}
             >
-              <Avatar
-                initials={currentUser.initials}
-                color={colors.primary}
-                size={40}
-              />
+              <Avatar initials={currentUser.initials} color={colors.primary} size={40} />
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.statsGrid}>
-          <StatCard
-            label="Meetings this month"
-            value={mockStats.meetingsThisMonth}
-            sublabel="+4 vs last month"
-          />
-          <StatCard
-            label="Open tasks"
-            value={mockStats.openTasks}
-            sublabel={`${mockStats.completionRate}% completion`}
-          />
-        </View>
-        <View style={styles.statsRow}>
-          <StatCard
-            label="Time saved by AI"
-            value={mockStats.timeSaved}
-            sublabel="This month"
-          />
-        </View>
-
-        <InsightCard
-          title={mockInsight.title}
-          text={mockInsight.text}
-          badge={mockInsight.badge}
-        />
-
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-            Recent meetings
-          </Text>
-          <TouchableOpacity onPress={() => router.push("/meetings")}>
-            <Text style={[styles.seeAll, { color: colors.primary }]}>
-              See all
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {recentMeetings.map((m) => (
-          <MeetingCard key={m.id} meeting={m} compact />
-        ))}
-
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-            Today's tasks
-          </Text>
-          <TouchableOpacity onPress={() => router.push("/tasks")}>
-            <Text style={[styles.seeAll, { color: colors.primary }]}>
-              See all
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {todayTasks.map((t) => (
-          <TaskCard
-            key={t.id}
-            task={t}
-            onToggle={toggleTask}
-            showMeta={false}
-          />
-        ))}
-
-        {todayTasks.length === 0 && (
-          <View
-            style={[
-              styles.emptyState,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
+        <TouchableOpacity
+          style={[styles.recordCard]}
+          activeOpacity={0.85}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            router.push("/record");
+          }}
+        >
+          <LinearGradient
+            colors={["#5341CD", "#3526A0"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.recordGradient}
           >
-            <Feather name="check-circle" size={24} color={colors.success} />
-            <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-              All tasks done for today!
-            </Text>
-          </View>
-        )}
-      </ScrollView>
+            <View style={styles.recordLeft}>
+              <View style={styles.recordIconWrap}>
+                <Feather name="mic" size={22} color="#fff" />
+              </View>
+              <View>
+                <Text style={styles.recordTitle}>Start Recording</Text>
+                <Text style={styles.recordSub}>
+                  AI will transcribe in real-time
+                </Text>
+              </View>
+            </View>
+            <WaveformBars isActive barCount={14} color="rgba(255,255,255,0.6)" height={36} />
+          </LinearGradient>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.primary }]}
-        onPress={() => setCreateMeetingVisible(true)}
-        activeOpacity={0.85}
-      >
-        <Feather name="plus" size={24} color="#fff" />
-      </TouchableOpacity>
+        <View style={styles.statsRow}>
+          {[
+            { label: "This week", value: mockStats.thisWeekConversations, unit: "convos", icon: "calendar" },
+            { label: "Total time", value: "24h", unit: "recorded", icon: "clock" },
+            { label: "Actions open", value: mockStats.openActionItems, unit: "pending", icon: "check-square" },
+          ].map((s) => (
+            <View
+              key={s.label}
+              style={[
+                styles.statChip,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <Feather name={s.icon as any} size={14} color={colors.primary} />
+              <Text style={[styles.statValue, { color: colors.foreground }]}>
+                {s.value}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>
+                {s.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        <View
+          style={[
+            styles.aiCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={styles.aiHeader}>
+            <View
+              style={[
+                styles.aiIconWrap,
+                { backgroundColor: colors.brandSubtle },
+              ]}
+            >
+              <Feather name="zap" size={14} color={colors.primary} />
+            </View>
+            <Text style={[styles.aiTitle, { color: colors.foreground }]}>
+              Today's AI Digest
+            </Text>
+            <Badge label="New" variant="primary" />
+          </View>
+          <Text style={[styles.aiText, { color: colors.gray700 }]}>
+            You have <Text style={{ fontWeight: "600", color: colors.foreground }}>6 open action items</Text> from this week's meetings. Your talk-to-listen ratio is{" "}
+            <Text style={{ fontWeight: "600", color: colors.primary }}>42:58</Text> — you're listening more than average. Top topics: mobile, roadmap, Series B.
+          </Text>
+          <TouchableOpacity onPress={() => router.push("/(tabs)/analytics")}>
+            <Text style={[styles.aiLink, { color: colors.primary }]}>
+              View full analytics →
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Recent
+          </Text>
+          <TouchableOpacity onPress={() => router.push("/(tabs)/search")}>
+            <Text style={[styles.seeAll, { color: colors.primary }]}>See all</Text>
+          </TouchableOpacity>
+        </View>
+
+        {recent.map((c) => (
+          <ConversationCard key={c.id} conversation={c} />
+        ))}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    gap: 16,
-  },
+  root: { flex: 1 },
+  scroll: { paddingHorizontal: 20, gap: 16 },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  greeting: {
-    fontSize: 13,
-  },
-  name: {
-    fontSize: 26,
-    fontWeight: "700",
-    letterSpacing: -0.5,
-  },
-  topActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
+  greeting: { fontSize: 13 },
+  name: { fontSize: 26, fontWeight: "700", letterSpacing: -0.5 },
+  topRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   iconBtn: {
     width: 40,
     height: 40,
@@ -220,51 +199,65 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  statsGrid: {
+  recordCard: {
+    borderRadius: 20,
+    overflow: "hidden",
+    shadowColor: "#5341CD",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  recordGradient: {
     flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 20,
+  },
+  recordLeft: { flexDirection: "row", alignItems: "center", gap: 14 },
+  recordIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  recordTitle: { fontSize: 16, fontWeight: "700", color: "#fff" },
+  recordSub: { fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 2 },
+  statsRow: { flexDirection: "row", gap: 10 },
+  statChip: {
+    flex: 1,
+    alignItems: "center",
+    borderRadius: 12,
+    borderWidth: 0.5,
+    padding: 12,
+    gap: 4,
+  },
+  statValue: { fontSize: 20, fontWeight: "700", letterSpacing: -0.5 },
+  statLabel: { fontSize: 10, textAlign: "center" },
+  aiCard: {
+    borderRadius: 16,
+    borderWidth: 0.5,
+    padding: 16,
     gap: 10,
   },
-  statsRow: {
-    flexDirection: "row",
+  aiHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  aiIconWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
+  aiTitle: { fontSize: 14, fontWeight: "600", flex: 1 },
+  aiText: { fontSize: 13, lineHeight: 20 },
+  aiLink: { fontSize: 13, fontWeight: "500" },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 4,
   },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  seeAll: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  emptyState: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderRadius: 12,
-    borderWidth: 0.5,
-    padding: 16,
-  },
-  emptyText: {
-    fontSize: 14,
-  },
-  fab: {
-    position: "absolute",
-    right: 20,
-    bottom: Platform.OS === "web" ? 34 + 84 + 16 : 100,
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#5341CD",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
+  sectionTitle: { fontSize: 17, fontWeight: "600" },
+  seeAll: { fontSize: 13, fontWeight: "500" },
 });
