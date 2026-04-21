@@ -1,4 +1,3 @@
-import { BlurView } from "expo-blur";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
 import React, { useRef } from "react";
@@ -6,18 +5,16 @@ import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "re
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { RecordFAB } from "@/components/RecordFAB";
-import { useColors } from "@/hooks/useColors";
 
 const TABS = [
   { name: "/(tabs)/index", label: "Início", icon: "home" },
   { name: "/(tabs)/search", label: "Buscar", icon: "search" },
-  { name: "/(tabs)/spaces", label: "Espaços", icon: "folder" },
   { name: "/(tabs)/analytics", label: "Análises", icon: "bar-chart-2" },
   { name: "/(tabs)/profile", label: "Perfil", icon: "user" },
 ] as const;
 
-const ACTIVE = "#9B59D0";
-const INACTIVE = "#C4B8D8";
+const ACTIVE = "#AF52DE";
+const INACTIVE = "#C0BDD0";
 
 function TabButton({ tab, active }: { tab: typeof TABS[number]; active: boolean }) {
   const router = useRouter();
@@ -25,7 +22,7 @@ function TabButton({ tab, active }: { tab: typeof TABS[number]; active: boolean 
 
   function handlePress() {
     Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 1.15, duration: 100, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 1.15, duration: 80, useNativeDriver: true }),
       Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }),
     ]).start();
     router.push(tab.name as any);
@@ -42,68 +39,39 @@ function TabButton({ tab, active }: { tab: typeof TABS[number]; active: boolean 
 }
 
 export function GlassTabBar() {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
 
   const leftTabs = TABS.slice(0, 2);
-  const rightTabs = TABS.slice(3, 5);
+  const rightTabs = TABS.slice(2, 4);
 
   function isActive(name: string) {
     if (name === "/(tabs)/index") return pathname === "/" || pathname === "/index" || pathname === "/(tabs)" || pathname === "/(tabs)/index";
     return pathname.startsWith(name.replace("/(tabs)", ""));
   }
 
-  const barContent = (
-    <>
-      <View style={styles.left}>
-        {leftTabs.map((tab) => (
-          <TabButton key={tab.name} tab={tab} active={isActive(tab.name)} />
-        ))}
-      </View>
-      <View style={styles.center}>
-        <RecordFAB />
-      </View>
-      <View style={styles.right}>
-        {rightTabs.map((tab) => (
-          <TabButton key={tab.name} tab={tab} active={isActive(tab.name)} />
-        ))}
-      </View>
-    </>
-  );
-
-  if (Platform.OS === "ios") {
-    return (
-      <View style={[styles.wrapper, { paddingBottom: insets.bottom }]}>
-        <BlurView
-          intensity={80}
-          tint="systemUltraThinMaterialLight"
-          style={[styles.bar, { borderTopColor: "rgba(175,82,222,0.12)" }]}
-        >
-          {barContent}
-        </BlurView>
-      </View>
-    );
-  }
-
   return (
-    <View
-      style={[
-        styles.wrapper,
-        { paddingBottom: insets.bottom },
-      ]}
-    >
+    <View style={[styles.wrapper, { paddingBottom: insets.bottom }]}>
       <View
         style={[
           styles.bar,
-          {
-            backgroundColor: "rgba(255,255,255,0.92)",
-            borderTopColor: "rgba(175,82,222,0.12)",
-          },
-          Platform.OS === "android" && { elevation: 12 },
+          Platform.OS === "android" && { elevation: 8 },
+          Platform.OS === "web" && { boxShadow: "0 -1px 0 rgba(175,82,222,0.10)" } as any,
         ]}
       >
-        {barContent}
+        <View style={styles.left}>
+          {leftTabs.map((tab) => (
+            <TabButton key={tab.name} tab={tab} active={isActive(tab.name)} />
+          ))}
+        </View>
+        <View style={styles.center}>
+          <RecordFAB />
+        </View>
+        <View style={styles.right}>
+          {rightTabs.map((tab) => (
+            <TabButton key={tab.name} tab={tab} active={isActive(tab.name)} />
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -119,9 +87,11 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    paddingTop: 8,
-    paddingBottom: 6,
+    borderTopColor: "rgba(175,82,222,0.10)",
+    paddingTop: 10,
+    paddingBottom: 8,
     paddingHorizontal: 8,
   },
   left: { flex: 1, flexDirection: "row", justifyContent: "space-around" },

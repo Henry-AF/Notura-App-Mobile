@@ -1,4 +1,3 @@
-import { BlurView } from "expo-blur";
 import React from "react";
 import { Platform, StyleSheet, View, ViewStyle } from "react-native";
 import { useColors } from "@/hooks/useColors";
@@ -6,52 +5,39 @@ import { useColors } from "@/hooks/useColors";
 interface GlassCardProps {
   children: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
-  intensity?: number;
   dark?: boolean;
+  tinted?: boolean;
   noPad?: boolean;
   noShadow?: boolean;
+  intensity?: number;
 }
 
-export function GlassCard({ children, style, intensity = 55, dark = false, noPad = false, noShadow = false }: GlassCardProps) {
+export function GlassCard({ children, style, dark = false, tinted = false, noPad = false, noShadow = false }: GlassCardProps) {
   const colors = useColors();
 
   const shadowStyle: ViewStyle = noShadow ? {} : Platform.OS === "ios" ? {
-    shadowColor: "rgb(100,60,180)",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-  } : Platform.OS === "android" ? { elevation: 3 } : {};
+    shadowColor: "#AF52DE",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+  } : Platform.OS === "android" ? { elevation: 2 } : {};
 
-  if (Platform.OS === "ios") {
-    return (
-      <BlurView
-        intensity={intensity}
-        tint={dark ? "dark" : "systemUltraThinMaterialLight"}
-        style={[
-          styles.base,
-          shadowStyle,
-          {
-            borderColor: dark ? "rgba(255,255,255,0.12)" : colors.glassBorder,
-            backgroundColor: dark ? "rgba(61,26,110,0.9)" : undefined,
-          },
-          !noPad && styles.pad,
-          style,
-        ]}
-      >
-        {children}
-      </BlurView>
-    );
-  }
+  const bgColor = dark
+    ? colors.darkCard
+    : tinted
+    ? "rgba(175,82,222,0.07)"
+    : colors.card;
+
+  const borderColor = dark
+    ? "rgba(255,255,255,0.10)"
+    : "rgba(175,82,222,0.10)";
 
   return (
     <View
       style={[
         styles.base,
         shadowStyle,
-        {
-          backgroundColor: dark ? colors.darkCard : colors.glassBg,
-          borderColor: dark ? "rgba(255,255,255,0.12)" : colors.glassBorder,
-        },
+        { backgroundColor: bgColor, borderColor },
         !noPad && styles.pad,
         style,
       ]}

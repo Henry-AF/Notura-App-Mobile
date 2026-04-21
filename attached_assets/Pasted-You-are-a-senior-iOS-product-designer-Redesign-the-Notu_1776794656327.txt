@@ -1,0 +1,70 @@
+You are a senior iOS product designer. Redesign the Notura productivity app using the design language extracted from the reference app below. Notura is a meeting recording and project management app. The current version exists — improve it, don't replace its structure.
+Design system to extract and apply from the reference
+Color palette:
+
+Page background: #FFFFFF pure white
+Primary dark card (hero surfaces): #2A4A52 — deep teal, used for the progress/summary card and calendar-style containers
+Accent primary: #AF52DE — Notura's purple replaces the reference's amber #F5A623 in every role: FAB, progress rings, active dots, CTA buttons, colored word in the hero title
+Soft accent card background: rgba(175, 82, 222, 0.07) — replaces the reference's peach #FFF3E8 for secondary cards
+All body text: #1A1A2E near-black with purple undertone
+Secondary labels and metadata: #8A8A9A
+Progress bar fill: #AF52DE, track: rgba(175, 82, 222, 0.12)
+
+Typography — mirror the reference's bold editorial style
+
+Hero title: 28px, weight 800, two-line, with the word "reuniões" or "produtivo" rendered in #AF52DE and the rest in #1A1A2E — exactly like "Let's become more Productive" in the reference
+Section headers: 17px, weight 700, #1A1A2E
+Card titles: 15px, weight 600, #1A1A2E
+Time labels and metadata: 12px, weight 400, #8A8A9A
+Progress percentage: 13px, weight 700, #AF52DE, right-aligned
+
+Hero summary card — replicate the reference's dark progress card
+Replace the current "Bem-vindo" banner with a rich dark card:
+
+Background: #2A4A52, border-radius: 24px, full width
+Left side: bold white headline "Seus projetos estão indo bem", subtext in rgba(255,255,255,0.6) 13px, CTA button "Ver tarefas" in #AF52DE fill, white label, border-radius: 999px, 36px height
+Right side: circular progress ring — stroke #AF52DE, track rgba(255,255,255,0.15), percentage in white weight 700 center
+Overall feel: same weight and presence as the teal summary card in the reference
+
+Project cards grid — 2×2, mixed card styles like the reference
+The reference alternates between plain white cards and soft-tinted cards. Apply the same rhythm to Notura:
+
+Card 1 (top-left): white background, subtle border 1px solid rgba(175,82,222,0.1)
+Card 2 (top-right): soft purple tint rgba(175,82,222,0.07) background
+Card 3 (bottom-left): soft purple tint
+Card 4 (bottom-right): dark teal #2A4A52 with white text — "Ver mais +5 projetos" CTA, mimicking the "Click to view more" dark card in the reference
+All cards: border-radius: 20px, no heavy shadows, icon in a 36px rounded square with soft purple bg, progress bar full width at bottom of card
+
+Schedule / timeline screen (new screen — add it)
+Inspired directly by the reference's calendar+timeline screen:
+
+Top section: purple-tinted calendar strip container (use #2A4A52 dark teal background), month navigation with < > arrows in white, weekday row, selected date circle in #AF52DE
+"Set Reminder" button: full-width, #AF52DE fill, white label, border-radius: 999px, 52px height — same pill CTA as the reference's amber button
+Below: day label "Sexta-feira, 21" bold left-aligned
+Timeline: left-side time labels in #8A8A9A, vertical line with #AF52DE dot on current time, meeting cards as soft purple-tinted rounded rects with title, time range, and avatar stack
+
+FAB — recording button
+Keep Notura's microphone FAB but upgrade it to match the reference's FAB presence:
+
+64px circle, #AF52DE solid fill (no gradient — the reference uses flat solid on the FAB)
+White microphone icon, 26px
+Pulse ring animation: two rings, rgba(175,82,222,0.25), scale 1→1.5, opacity fade, 1.8s loop
+Tab bar label below: "Gravar", 11px, #AF52DE, weight 600
+box-shadow: 0 8px 28px rgba(175,82,222,0.35)
+
+Tab bar
+
+White background, border-top: 1px solid rgba(175,82,222,0.1)
+5 tabs: Início, Buscar, Gravar (FAB center), Análises, Perfil
+Active state: icon + label in #AF52DE
+Inactive: #C0BDD0
+
+Illustrations
+The reference uses simple flat illustrations inside cards (person at desk, designer at whiteboard). Add small 80×80px flat illustrations to 2 of the 4 project cards — abstract productivity scenes in purple/teal tones, SVG style, no photography.
+Deliver screens in this order:
+
+Home (with dark hero card + project grid)
+Schedule / Calendar + Timeline
+Profile (stats + folders + team list)
+
+Use real Brazilian Portuguese content throughout. Every detail should feel considered — this app should look like it belongs on the App Store featured section.

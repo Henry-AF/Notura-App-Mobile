@@ -3,13 +3,13 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useColors } from "@/hooks/useColors";
+
+const PRIMARY = "#AF52DE";
 
 export function RecordFAB() {
-  const colors = useColors();
   const router = useRouter();
   const ring1Scale = useRef(new Animated.Value(1)).current;
-  const ring1Opacity = useRef(new Animated.Value(0.5)).current;
+  const ring1Opacity = useRef(new Animated.Value(0.7)).current;
   const ring2Scale = useRef(new Animated.Value(1)).current;
   const ring2Opacity = useRef(new Animated.Value(0.5)).current;
 
@@ -19,12 +19,12 @@ export function RecordFAB() {
         Animated.sequence([
           Animated.delay(delay),
           Animated.parallel([
-            Animated.timing(scale, { toValue: 1.65, duration: 1800, useNativeDriver: true }),
+            Animated.timing(scale, { toValue: 1.5, duration: 1800, useNativeDriver: true }),
             Animated.timing(opacity, { toValue: 0, duration: 1800, useNativeDriver: true }),
           ]),
           Animated.parallel([
             Animated.timing(scale, { toValue: 1, duration: 0, useNativeDriver: true }),
-            Animated.timing(opacity, { toValue: 0.5, duration: 0, useNativeDriver: true }),
+            Animated.timing(opacity, { toValue: delay === 0 ? 0.7 : 0.5, duration: 0, useNativeDriver: true }),
           ]),
         ])
       );
@@ -45,21 +45,22 @@ export function RecordFAB() {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
           router.push("/record");
         }}
-        activeOpacity={0.86}
+        activeOpacity={0.88}
         style={[
           styles.btn,
           Platform.OS === "ios" && {
-            shadowColor: "#7B2FBE",
+            shadowColor: PRIMARY,
             shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.45,
-            shadowRadius: 22,
+            shadowOpacity: 0.35,
+            shadowRadius: 28,
           },
-          Platform.OS === "android" && { elevation: 12 },
+          Platform.OS === "android" && { elevation: 14 },
+          Platform.OS === "web" && { boxShadow: "0 8px 28px rgba(175,82,222,0.35)" } as any,
         ]}
       >
         <Feather name="mic" size={26} color="#FFFFFF" />
       </TouchableOpacity>
-      <Text style={[styles.label, { color: colors.primary }]}>Gravar</Text>
+      <Text style={styles.label}>Gravar</Text>
     </View>
   );
 }
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "rgba(175,82,222,0.28)",
+    backgroundColor: "rgba(175,82,222,0.25)",
   },
   btn: {
     width: 64,
@@ -79,8 +80,7 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#9B59D0",
-    ...(Platform.OS === "web" ? { backgroundImage: "linear-gradient(135deg,#AF52DE,#7B2FBE)" } as any : {}),
+    backgroundColor: PRIMARY,
   },
-  label: { fontSize: 11, fontWeight: "500", marginTop: 5 },
+  label: { fontSize: 11, fontWeight: "600", color: PRIMARY, marginTop: 5 },
 });
