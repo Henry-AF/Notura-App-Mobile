@@ -20,12 +20,12 @@ import { useColors } from "@/hooks/useColors";
 import type { Conversation } from "@/lib/mockData";
 
 const LIVE_LINES = [
-  { speaker: "Henry Costa", initials: "HC", color: "#AF52DE", text: "Let's kick off the weekly sync. First item is the mobile release." },
-  { speaker: "Sarah Kim", initials: "SK", color: "#34C759", text: "We're on track for May 15th. The audio module fix landed yesterday." },
-  { speaker: "Marcus Lee", initials: "ML", color: "#FF9500", text: "Great news. What's the status on the App Store submission checklist?" },
-  { speaker: "Henry Costa", initials: "HC", color: "#AF52DE", text: "About 80% done. We still need the privacy policy and screenshots." },
-  { speaker: "Sarah Kim", initials: "SK", color: "#34C759", text: "I can handle screenshots today. Privacy policy is with legal." },
-  { speaker: "Marcus Lee", initials: "ML", color: "#FF9500", text: "Legal said two more days. We should be clear to submit by end of week." },
+  { speaker: "Henry Costa", initials: "HC", color: "#AF52DE", text: "Vamos começar o sync semanal. Primeiro item é o lançamento mobile." },
+  { speaker: "Sarah Kim", initials: "SK", color: "#34C759", text: "Estamos no prazo para 15 de maio. A correção do módulo de áudio chegou ontem." },
+  { speaker: "Marcus Lee", initials: "ML", color: "#FF9500", text: "Ótima notícia. Qual o status do checklist de submissão para a App Store?" },
+  { speaker: "Henry Costa", initials: "HC", color: "#AF52DE", text: "Cerca de 80% concluído. Ainda precisamos da política de privacidade e capturas de tela." },
+  { speaker: "Sarah Kim", initials: "SK", color: "#34C759", text: "Posso cuidar das capturas de tela hoje. A política de privacidade está com o jurídico." },
+  { speaker: "Marcus Lee", initials: "ML", color: "#FF9500", text: "O jurídico disse mais dois dias. Devemos estar prontos para submeter até o fim da semana." },
 ];
 
 function useTimer(running: boolean) {
@@ -94,10 +94,10 @@ export default function RecordScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const conv: Conversation = {
       id: Date.now().toString(),
-      title: "New Recording",
-      subtitle: "Just recorded",
-      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      dateShort: "Just now",
+      title: "Nova Gravação",
+      subtitle: "Recém gravado",
+      date: new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" }),
+      dateShort: "Agora mesmo",
       duration: timer,
       durationSeconds: 0,
       status: "processing",
@@ -129,7 +129,7 @@ export default function RecordScreen() {
           <Feather name="x" size={18} color={colors.foreground} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-          {isRecording ? "Recording" : "Ready"}
+          {isRecording ? "Gravando" : "Pronto"}
         </Text>
         <View style={{ width: 38 }} />
       </View>
@@ -140,12 +140,9 @@ export default function RecordScreen() {
           {isRecording && !isPaused && (
             <View style={styles.liveRow}>
               <Animated.View
-                style={[
-                  styles.liveDot,
-                  { backgroundColor: colors.error, transform: [{ scale: pulseAnim }] },
-                ]}
+                style={[styles.liveDot, { backgroundColor: colors.error, transform: [{ scale: pulseAnim }] }]}
               />
-              <Text style={[styles.liveLabel, { color: colors.error }]}>LIVE</Text>
+              <Text style={[styles.liveLabel, { color: colors.error }]}>AO VIVO</Text>
             </View>
           )}
         </View>
@@ -168,25 +165,14 @@ export default function RecordScreen() {
                   key={sp.name}
                   style={[
                     styles.speakerChip,
-                    {
-                      backgroundColor: active ? sp.color + "18" : colors.secondary,
-                      borderColor: active ? sp.color + "50" : "transparent",
-                      borderWidth: 1,
-                    },
+                    { backgroundColor: active ? sp.color + "18" : colors.secondary, borderColor: active ? sp.color + "50" : "transparent", borderWidth: 1 },
                   ]}
                 >
                   <Avatar initials={sp.initials} color={sp.color} size={20} />
-                  <Text
-                    style={[
-                      styles.speakerChipName,
-                      { color: active ? sp.color : colors.gray500, fontWeight: active ? "500" : "400" },
-                    ]}
-                  >
+                  <Text style={[styles.speakerChipName, { color: active ? sp.color : colors.gray500, fontWeight: active ? "500" : "400" }]}>
                     {sp.name}
                   </Text>
-                  {active && (
-                    <WaveformBars isActive barCount={4} color={sp.color} height={12} compact />
-                  )}
+                  {active && <WaveformBars isActive barCount={4} color={sp.color} height={12} compact />}
                 </View>
               );
             })}
@@ -198,20 +184,13 @@ export default function RecordScreen() {
             style={[
               styles.transcriptCard,
               { backgroundColor: colors.card },
-              Platform.OS === "ios" && {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.06,
-                shadowRadius: 12,
-              },
+              Platform.OS === "ios" && { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12 },
               Platform.OS === "android" && { elevation: 2 },
             ]}
           >
             <View style={styles.transcriptLabel}>
               <Feather name="file-text" size={12} color={colors.primary} />
-              <Text style={[styles.transcriptLabelText, { color: colors.primary }]}>
-                Live Transcript
-              </Text>
+              <Text style={[styles.transcriptLabelText, { color: colors.primary }]}>Transcrição ao vivo</Text>
             </View>
             <ScrollView style={{ maxHeight: 160 }} showsVerticalScrollIndicator={false}>
               {visibleLines.map((lineIdx) => {
@@ -234,9 +213,9 @@ export default function RecordScreen() {
         {!isRecording && (
           <View style={styles.hints}>
             {[
-              "Identifies speakers automatically",
-              "Transcribed in real-time",
-              "Action items extracted on finish",
+              "Identifica participantes automaticamente",
+              "Transcrição em tempo real",
+              "Itens de ação extraídos ao finalizar",
             ].map((h) => (
               <View key={h} style={styles.hintRow}>
                 <View style={[styles.hintDot, { backgroundColor: colors.success + "20" }]}>
@@ -255,12 +234,7 @@ export default function RecordScreen() {
             style={[
               styles.bigBtn,
               { backgroundColor: colors.error },
-              Platform.OS === "ios" && {
-                shadowColor: colors.error,
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.3,
-                shadowRadius: 16,
-              },
+              Platform.OS === "ios" && { shadowColor: colors.error, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16 },
             ]}
             onPress={handleStart}
             activeOpacity={0.92}
@@ -274,29 +248,22 @@ export default function RecordScreen() {
               onPress={handleStop}
             >
               <Feather name="square" size={20} color={colors.error} />
-              <Text style={[styles.controlBtnLabel, { color: colors.error }]}>Stop</Text>
+              <Text style={[styles.controlBtnLabel, { color: colors.error }]}>Parar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.bigBtn,
                 { backgroundColor: isPaused ? colors.primary : colors.error },
-                Platform.OS === "ios" && {
-                  shadowColor: isPaused ? colors.primary : colors.error,
-                  shadowOffset: { width: 0, height: 8 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 16,
-                },
+                Platform.OS === "ios" && { shadowColor: isPaused ? colors.primary : colors.error, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16 },
               ]}
               onPress={handlePause}
               activeOpacity={0.92}
             >
               <Feather name={isPaused ? "mic" : "pause"} size={28} color="#fff" />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.controlBtn, { backgroundColor: colors.secondary }]}
-            >
+            <TouchableOpacity style={[styles.controlBtn, { backgroundColor: colors.secondary }]}>
               <Feather name="bookmark" size={20} color={colors.primary} />
-              <Text style={[styles.controlBtnLabel, { color: colors.primary }]}>Mark</Text>
+              <Text style={[styles.controlBtnLabel, { color: colors.primary }]}>Marcar</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -307,13 +274,7 @@ export default function RecordScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 12 },
   closeBtn: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 16, fontWeight: "600" },
   body: { flex: 1, paddingHorizontal: 20, gap: 20 },
@@ -324,14 +285,7 @@ const styles = StyleSheet.create({
   liveLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 1 },
   waveformRow: { alignItems: "center" },
   speakerRow: { flexDirection: "row", gap: 8, justifyContent: "center", flexWrap: "wrap" },
-  speakerChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 9999,
-    gap: 6,
-  },
+  speakerChip: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 7, borderRadius: 9999, gap: 6 },
   speakerChipName: { fontSize: 13 },
   transcriptCard: { borderRadius: 16, padding: 14, gap: 10 },
   transcriptLabel: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -346,13 +300,6 @@ const styles = StyleSheet.create({
   controls: { paddingHorizontal: 20, alignItems: "center", paddingTop: 12 },
   bigBtn: { width: 72, height: 72, borderRadius: 36, alignItems: "center", justifyContent: "center" },
   activeControls: { flexDirection: "row", alignItems: "center", gap: 30 },
-  controlBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-  },
+  controlBtn: { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center", gap: 4 },
   controlBtnLabel: { fontSize: 10, fontWeight: "500" },
 });

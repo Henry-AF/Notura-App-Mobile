@@ -18,52 +18,39 @@ interface PricingModalProps {
 }
 
 const FREE_FEATURES = [
-  "5 recordings/month",
-  "Basic AI summaries",
-  "Action item extraction",
-  "7-day history",
+  "5 gravações/mês",
+  "Resumos básicos de IA",
+  "Extração de itens de ação",
+  "Histórico de 7 dias",
 ];
 
 const PRO_FEATURES = [
-  "Unlimited recordings",
-  "Advanced AI summaries",
-  "Speaker identification",
-  "Unlimited history",
-  "All integrations",
-  "Team collaboration",
-  "Export to Notion / Slack",
-  "Priority support",
+  "Gravações ilimitadas",
+  "Resumos avançados de IA",
+  "Identificação de voz",
+  "Histórico ilimitado",
+  "Todas as integrações",
+  "Colaboração em equipe",
+  "Exportar para Notion / Slack",
+  "Suporte prioritário",
 ];
 
 export function PricingModal({ visible, onClose }: PricingModalProps) {
   const colors = useColors();
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-            Upgrade to Pro
-          </Text>
-          <TouchableOpacity
-            style={[styles.closeBtn, { backgroundColor: colors.secondary }]}
-            onPress={onClose}
-          >
+          <Text style={[styles.headerTitle, { color: colors.foreground }]}>Seja Pro</Text>
+          <TouchableOpacity style={[styles.closeBtn, { backgroundColor: colors.secondary }]} onPress={onClose}>
             <Feather name="x" size={18} color={colors.gray500} />
           </TouchableOpacity>
         </View>
 
-        <ScrollView
-          contentContainerStyle={styles.body}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           <Text style={[styles.tagline, { color: colors.gray500 }]}>
-            Get the most out of every conversation
+            Aproveite ao máximo cada conversa
           </Text>
 
           <View style={styles.plans}>
@@ -71,19 +58,14 @@ export function PricingModal({ visible, onClose }: PricingModalProps) {
               style={[
                 styles.planCard,
                 { backgroundColor: colors.card },
-                Platform.OS === "ios" && {
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.06,
-                  shadowRadius: 12,
-                },
+                Platform.OS === "ios" && { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12 },
                 Platform.OS === "android" && { elevation: 2 },
               ]}
             >
-              <Text style={[styles.planName, { color: colors.gray500 }]}>Free</Text>
+              <Text style={[styles.planName, { color: colors.gray500 }]}>Gratuito</Text>
               <View style={styles.priceRow}>
-                <Text style={[styles.price, { color: colors.foreground }]}>$0</Text>
-                <Text style={[styles.period, { color: colors.gray500 }]}>/month</Text>
+                <Text style={[styles.price, { color: colors.foreground }]}>R$0</Text>
+                <Text style={[styles.period, { color: colors.gray500 }]}>/mês</Text>
               </View>
               <View style={styles.features}>
                 {FREE_FEATURES.map((f) => (
@@ -94,31 +76,25 @@ export function PricingModal({ visible, onClose }: PricingModalProps) {
                 ))}
               </View>
               <View style={[styles.currentPill, { backgroundColor: colors.secondary }]}>
-                <Text style={[styles.currentText, { color: colors.gray500 }]}>Current plan</Text>
+                <Text style={[styles.currentText, { color: colors.gray500 }]}>Plano atual</Text>
               </View>
             </View>
 
             <View
               style={[
                 styles.planCard,
-                styles.proPlan,
                 { backgroundColor: colors.primary },
-                Platform.OS === "ios" && {
-                  shadowColor: colors.primary,
-                  shadowOffset: { width: 0, height: 8 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 20,
-                },
+                Platform.OS === "ios" && { shadowColor: colors.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 20 },
                 Platform.OS === "android" && { elevation: 8 },
               ]}
             >
               <View style={styles.popularBadge}>
-                <Text style={styles.popularText}>Most Popular</Text>
+                <Text style={styles.popularText}>Mais popular</Text>
               </View>
               <Text style={[styles.planName, { color: "rgba(255,255,255,0.7)" }]}>Pro</Text>
               <View style={styles.priceRow}>
-                <Text style={[styles.price, { color: "#fff" }]}>$19</Text>
-                <Text style={[styles.period, { color: "rgba(255,255,255,0.7)" }]}>/month</Text>
+                <Text style={[styles.price, { color: "#fff" }]}>R$99</Text>
+                <Text style={[styles.period, { color: "rgba(255,255,255,0.7)" }]}>/mês</Text>
               </View>
               <View style={styles.features}>
                 {PRO_FEATURES.map((f) => (
@@ -135,21 +111,16 @@ export function PricingModal({ visible, onClose }: PricingModalProps) {
             style={[
               styles.upgradeBtn,
               { backgroundColor: colors.primary },
-              Platform.OS === "ios" && {
-                shadowColor: colors.primary,
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.28,
-                shadowRadius: 14,
-              },
+              Platform.OS === "ios" && { shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.28, shadowRadius: 14 },
             ]}
             activeOpacity={0.92}
           >
             <Feather name="zap" size={17} color="#fff" />
-            <Text style={styles.upgradeBtnText}>Upgrade to Pro — $19/mo</Text>
+            <Text style={styles.upgradeBtnText}>Assinar Pro — R$99/mês</Text>
           </TouchableOpacity>
 
           <Text style={[styles.footer, { color: colors.gray400 }]}>
-            Cancel anytime · Billed monthly · Secure checkout
+            Cancele quando quiser · Cobrança mensal · Pagamento seguro
           </Text>
         </ScrollView>
       </SafeAreaView>
@@ -173,7 +144,6 @@ const styles = StyleSheet.create({
   tagline: { fontSize: 15, textAlign: "center" },
   plans: { gap: 14 },
   planCard: { borderRadius: 20, padding: 20, gap: 14 },
-  proPlan: {},
   popularBadge: {
     alignSelf: "flex-start",
     backgroundColor: "rgba(255,255,255,0.25)",
@@ -189,21 +159,9 @@ const styles = StyleSheet.create({
   features: { gap: 8 },
   featureRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   featureText: { fontSize: 14 },
-  currentPill: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 9999,
-  },
+  currentPill: { alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 9999 },
   currentText: { fontSize: 12, fontWeight: "500" },
-  upgradeBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    height: 54,
-    borderRadius: 9999,
-  },
+  upgradeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 54, borderRadius: 9999 },
   upgradeBtnText: { fontSize: 16, fontWeight: "600", color: "#fff" },
   footer: { fontSize: 12, textAlign: "center" },
 });

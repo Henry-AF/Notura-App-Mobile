@@ -24,10 +24,10 @@ function statusVariant(s: ConversationStatus) {
 
 function statusLabel(s: ConversationStatus) {
   switch (s) {
-    case "completed": return "Done";
-    case "recording": return "Recording";
-    case "processing": return "Processing";
-    case "failed": return "Failed";
+    case "completed": return "Concluído";
+    case "recording": return "Gravando";
+    case "processing": return "Processando";
+    case "failed": return "Falhou";
   }
 }
 
@@ -60,7 +60,7 @@ export function ConversationCard({ conversation: conv }: ConversationCardProps) 
       {conv.status === "recording" && (
         <View style={styles.recordingBanner}>
           <WaveformBars isActive barCount={10} color={colors.error} height={18} compact />
-          <Text style={[styles.recordingText, { color: colors.error }]}>Live</Text>
+          <Text style={[styles.recordingText, { color: colors.error }]}>Ao Vivo</Text>
         </View>
       )}
 
@@ -84,7 +84,7 @@ export function ConversationCard({ conversation: conv }: ConversationCardProps) 
               <>
                 <View style={[styles.metaDot, { backgroundColor: colors.gray300 }]} />
                 <Text style={[styles.metaText, { color: colors.gray400 }]}>
-                  {(conv.wordCount / 1000).toFixed(1)}k words
+                  {(conv.wordCount / 1000).toFixed(1)}k palavras
                 </Text>
               </>
             ) : null}
@@ -120,7 +120,7 @@ export function ConversationCard({ conversation: conv }: ConversationCardProps) 
             <View style={styles.badges}>
               <Badge label={statusLabel(conv.status)} variant={statusVariant(conv.status)} dot />
               {openActions > 0 && (
-                <Badge label={`${openActions} action${openActions > 1 ? "s" : ""}`} variant="primary" />
+                <Badge label={`${openActions} ação${openActions > 1 ? "ões" : ""}`} variant="primary" />
               )}
             </View>
           </View>

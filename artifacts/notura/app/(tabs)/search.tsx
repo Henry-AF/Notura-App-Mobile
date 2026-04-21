@@ -28,12 +28,12 @@ interface SearchResult {
   date: string;
 }
 
-const RECENT_SEARCHES = ["roadmap", "Series B", "mobile launch", "Acme Corp"];
+const RECENT_SEARCHES = ["roadmap", "Series B", "lançamento mobile", "Acme Corp"];
 
 const SEARCH_TYPES = [
-  { icon: "file-text", label: "Transcripts", sub: "Search inside conversation text" },
-  { icon: "check-square", label: "Action Items", sub: "Find tasks from meetings" },
-  { icon: "bookmark", label: "Highlights", sub: "Browse saved moments" },
+  { icon: "file-text", label: "Transcrições", sub: "Buscar dentro do texto das conversas" },
+  { icon: "check-square", label: "Itens de ação", sub: "Encontrar tarefas das reuniões" },
+  { icon: "bookmark", label: "Destaques", sub: "Ver momentos salvos" },
 ];
 
 export default function SearchScreen() {
@@ -81,7 +81,7 @@ export default function SearchScreen() {
             id: `action-${action.id}`,
             conversationId: conv.id,
             title: action.text,
-            excerpt: `From: ${conv.title}`,
+            excerpt: `De: ${conv.title}`,
             speaker: action.assignee,
             speakerInitials: action.assigneeInitials,
             speakerColor: action.assigneeColor,
@@ -97,19 +97,14 @@ export default function SearchScreen() {
   const bottomPad = Platform.OS === "web" ? 34 + 84 : insets.bottom + 100;
 
   const typeConfig: Record<string, { icon: string; label: string }> = {
-    conversation: { icon: "calendar", label: "Meeting" },
-    transcript: { icon: "file-text", label: "Transcript" },
-    action: { icon: "check-square", label: "Action" },
+    conversation: { icon: "calendar", label: "Reunião" },
+    transcript: { icon: "file-text", label: "Transcrição" },
+    action: { icon: "check-square", label: "Ação" },
   };
 
   function cardShadow() {
     if (Platform.OS === "ios") {
-      return {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-      };
+      return { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12 };
     }
     return { elevation: 1 };
   }
@@ -117,17 +112,17 @@ export default function SearchScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: topPad }]}>
-        <Text style={[styles.title, { color: colors.foreground }]}>Search</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>Buscar</Text>
         <SearchBar
           value={query}
           onChangeText={setQuery}
-          placeholder="Search conversations, transcript..."
+          placeholder="Buscar conversas, transcrições..."
         />
       </View>
 
       {query.length < 2 ? (
         <View style={styles.emptyState}>
-          <Text style={[styles.sectionLabel, { color: colors.gray500 }]}>Recent</Text>
+          <Text style={[styles.sectionLabel, { color: colors.gray500 }]}>Recentes</Text>
           <View style={styles.recentChips}>
             {RECENT_SEARCHES.map((s) => (
               <TouchableOpacity
@@ -142,26 +137,18 @@ export default function SearchScreen() {
             ))}
           </View>
 
-          <Text style={[styles.sectionLabel, { color: colors.gray500 }]}>Browse by type</Text>
-          {SEARCH_TYPES.map((item, idx) => (
+          <Text style={[styles.sectionLabel, { color: colors.gray500 }]}>Explorar por tipo</Text>
+          {SEARCH_TYPES.map((item) => (
             <TouchableOpacity
               key={item.label}
-              style={[
-                styles.typeRow,
-                { backgroundColor: colors.card, ...cardShadow() },
-                idx < SEARCH_TYPES.length - 1 && styles.typeRowNotLast,
-              ]}
+              style={[styles.typeRow, { backgroundColor: colors.card, ...cardShadow() }]}
               activeOpacity={0.97}
             >
-              <View
-                style={[styles.typeIconWrap, { backgroundColor: colors.brandSubtle }]}
-              >
+              <View style={[styles.typeIconWrap, { backgroundColor: colors.brandSubtle }]}>
                 <Feather name={item.icon as any} size={16} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.typeLabel, { color: colors.foreground }]}>
-                  {item.label}
-                </Text>
+                <Text style={[styles.typeLabel, { color: colors.foreground }]}>{item.label}</Text>
                 <Text style={[styles.typeSub, { color: colors.gray500 }]}>{item.sub}</Text>
               </View>
               <Feather name="chevron-right" size={16} color={colors.gray300} />
@@ -176,7 +163,7 @@ export default function SearchScreen() {
           ListHeaderComponent={
             results.length > 0 ? (
               <Text style={[styles.resultCount, { color: colors.gray500 }]}>
-                {results.length} result{results.length !== 1 ? "s" : ""} for "{query}"
+                {results.length} resultado{results.length !== 1 ? "s" : ""} para "{query}"
               </Text>
             ) : null
           }
@@ -216,10 +203,10 @@ export default function SearchScreen() {
                 <Feather name="search" size={28} color={colors.gray300} />
               </View>
               <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-                No results found
+                Nenhum resultado
               </Text>
               <Text style={[styles.emptySub, { color: colors.gray500 }]}>
-                Try a different keyword or phrase
+                Tente uma palavra-chave diferente
               </Text>
             </View>
           }
@@ -260,7 +247,6 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 8,
   },
-  typeRowNotLast: {},
   typeIconWrap: {
     width: 38,
     height: 38,

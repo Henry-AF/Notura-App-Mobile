@@ -19,11 +19,11 @@ import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { mockStats } from "@/lib/mockData";
 
-function greeting() {
+function saudacao() {
   const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
+  if (h < 12) return "Bom dia";
+  if (h < 18) return "Boa tarde";
+  return "Boa noite";
 }
 
 function StatChip({ icon, value, label }: { icon: string; value: string | number; label: string }) {
@@ -32,11 +32,9 @@ function StatChip({ icon, value, label }: { icon: string; value: string | number
     <View
       style={[
         styles.statChip,
-        {
-          backgroundColor: colors.card,
-          shadowColor: colors.shadow,
-        },
+        { backgroundColor: colors.card },
         Platform.OS === "ios" && {
+          shadowColor: colors.shadow,
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.06,
           shadowRadius: 12,
@@ -75,17 +73,14 @@ export default function HomeScreen() {
       >
         <View style={styles.topBar}>
           <View>
-            <Text style={[styles.greeting, { color: colors.gray500 }]}>{greeting()},</Text>
+            <Text style={[styles.greeting, { color: colors.gray500 }]}>{saudacao()},</Text>
             <Text style={[styles.name, { color: colors.foreground }]}>
               {currentUser.name.split(" ")[0]}
             </Text>
           </View>
           <View style={styles.topRight}>
             <TouchableOpacity
-              style={[
-                styles.iconBtn,
-                { backgroundColor: colors.secondary },
-              ]}
+              style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
               onPress={() => setPricingVisible(true)}
             >
               <Feather name="zap" size={17} color={colors.primary} />
@@ -119,66 +114,23 @@ export default function HomeScreen() {
               <Feather name="mic" size={20} color="#fff" />
             </View>
             <View>
-              <Text style={styles.recordTitle}>Start Recording</Text>
-              <Text style={styles.recordSub}>AI transcribes in real-time</Text>
+              <Text style={styles.recordTitle}>Iniciar Gravação</Text>
+              <Text style={styles.recordSub}>IA transcreve em tempo real</Text>
             </View>
           </View>
           <WaveformBars isActive barCount={12} color="rgba(255,255,255,0.55)" height={32} />
         </TouchableOpacity>
 
         <View style={styles.statsRow}>
-          <StatChip icon="calendar" value={mockStats.thisWeekConversations} label="This week" />
-          <StatChip icon="clock" value="24h" label="Recorded" />
-          <StatChip icon="check-square" value={mockStats.openActionItems} label="Actions open" />
-        </View>
-
-        <View
-          style={[
-            styles.digestCard,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-            },
-            Platform.OS === "ios" && {
-              shadowColor: colors.shadow,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.06,
-              shadowRadius: 12,
-            },
-            Platform.OS === "android" && { elevation: 2 },
-          ]}
-        >
-          <View style={styles.digestHeader}>
-            <View style={[styles.digestIconWrap, { backgroundColor: colors.brandSubtle }]}>
-              <Feather name="zap" size={13} color={colors.primary} />
-            </View>
-            <Text style={[styles.digestTitle, { color: colors.foreground }]}>
-              Today's AI Digest
-            </Text>
-            <View style={[styles.newPill, { backgroundColor: colors.brandSubtle }]}>
-              <Text style={[styles.newPillText, { color: colors.primary }]}>New</Text>
-            </View>
-          </View>
-          <Text style={[styles.digestText, { color: colors.gray600 }]}>
-            You have{" "}
-            <Text style={{ fontWeight: "600", color: colors.foreground }}>
-              6 open action items
-            </Text>{" "}
-            this week. Your talk-to-listen ratio is{" "}
-            <Text style={{ fontWeight: "600", color: colors.primary }}>42:58</Text> — you listen
-            more than average. Top topics: mobile, roadmap, Series B.
-          </Text>
-          <TouchableOpacity onPress={() => router.push("/(tabs)/analytics")}>
-            <Text style={[styles.digestLink, { color: colors.primary }]}>
-              View full analytics →
-            </Text>
-          </TouchableOpacity>
+          <StatChip icon="calendar" value={mockStats.thisWeekConversations} label="Esta semana" />
+          <StatChip icon="clock" value="24h" label="Gravado" />
+          <StatChip icon="check-square" value={mockStats.openActionItems} label="Ações abertas" />
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Recent</Text>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Recentes</Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/search")}>
-            <Text style={[styles.seeAll, { color: colors.primary }]}>See all</Text>
+            <Text style={[styles.seeAll, { color: colors.primary }]}>Ver tudo</Text>
           </TouchableOpacity>
         </View>
 
@@ -241,25 +193,6 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 20, fontWeight: "600", letterSpacing: -0.5 },
   statLabel: { fontSize: 10, textAlign: "center" },
-  digestCard: {
-    borderRadius: 16,
-    borderWidth: Platform.OS === "ios" ? 0 : 0.5,
-    padding: 16,
-    gap: 10,
-  },
-  digestHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  digestIconWrap: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  digestTitle: { fontSize: 14, fontWeight: "600", flex: 1 },
-  newPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9999 },
-  newPillText: { fontSize: 11, fontWeight: "500" },
-  digestText: { fontSize: 13, lineHeight: 20 },
-  digestLink: { fontSize: 13, fontWeight: "500" },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",

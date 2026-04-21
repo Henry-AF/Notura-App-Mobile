@@ -24,12 +24,7 @@ const SPACE_COLORS = ["#AF52DE", "#34C759", "#FF9500", "#007AFF", "#FF3B30", "#5
 
 function cardShadow() {
   if (Platform.OS === "ios") {
-    return {
-      shadowColor: "#000" as const,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 12,
-    };
+    return { shadowColor: "#000" as const, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12 };
   }
   return { elevation: 1 as const };
 }
@@ -53,7 +48,7 @@ function SpaceCard({ space, onPress }: { space: Space; onPress: () => void }) {
           </Text>
         )}
         <Text style={[styles.spaceCount, { color: colors.gray400 }]}>
-          {space.conversationCount} conversation{space.conversationCount !== 1 ? "s" : ""}
+          {space.conversationCount} conversa{space.conversationCount !== 1 ? "s" : ""}
         </Text>
       </View>
       <Feather name="chevron-right" size={16} color={colors.gray300} />
@@ -110,10 +105,10 @@ export default function SpacesScreen() {
                 <Feather name="folder" size={28} color={colors.gray300} />
               </View>
               <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-                No conversations yet
+                Nenhuma conversa aqui
               </Text>
               <Text style={[styles.emptySub, { color: colors.gray500 }]}>
-                Record a meeting and assign it to {selectedSpace.name}
+                Grave uma reunião e atribua a {selectedSpace.name}
               </Text>
             </View>
           }
@@ -126,7 +121,7 @@ export default function SpacesScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: topPad }]}>
-        <Text style={[styles.title, { color: colors.foreground }]}>Spaces</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>Espaços</Text>
         <TouchableOpacity
           style={[styles.addBtn, { backgroundColor: colors.primary }]}
           onPress={() => setCreateVisible(true)}
@@ -139,7 +134,7 @@ export default function SpacesScreen() {
         contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.sectionLabel, { color: colors.gray500 }]}>YOUR SPACES</Text>
+        <Text style={[styles.sectionLabel, { color: colors.gray500 }]}>SEUS ESPAÇOS</Text>
         {mockSpaces.map((space) => (
           <SpaceCard key={space.id} space={space} onPress={() => setSelectedSpace(space)} />
         ))}
@@ -153,10 +148,10 @@ export default function SpacesScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.sharedTitle, { color: colors.foreground }]}>
-              Shared with me
+              Compartilhados comigo
             </Text>
             <Text style={[styles.sharedSub, { color: colors.gray500 }]}>
-              3 conversations from your team
+              3 conversas da sua equipe
             </Text>
           </View>
           <Feather name="chevron-right" size={16} color={colors.gray300} />
@@ -166,7 +161,7 @@ export default function SpacesScreen() {
       <Modal visible={createVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={[styles.modalRoot, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: colors.foreground }]}>New Space</Text>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Novo Espaço</Text>
             <TouchableOpacity
               style={[styles.modalClose, { backgroundColor: colors.secondary }]}
               onPress={() => setCreateVisible(false)}
@@ -174,59 +169,37 @@ export default function SpacesScreen() {
               <Feather name="x" size={18} color={colors.gray500} />
             </TouchableOpacity>
           </View>
-
           <View style={styles.modalBody}>
             <TextInput
-              style={[
-                styles.nameInput,
-                { backgroundColor: colors.input, color: colors.foreground },
-              ]}
+              style={[styles.nameInput, { backgroundColor: colors.input, color: colors.foreground }]}
               value={newSpaceName}
               onChangeText={setNewSpaceName}
-              placeholder="Space name..."
+              placeholder="Nome do espaço..."
               placeholderTextColor={colors.gray300}
               autoFocus
             />
-
-            <Text style={[styles.colorSectionLabel, { color: colors.gray500 }]}>COLOR</Text>
+            <Text style={[styles.colorSectionLabel, { color: colors.gray500 }]}>COR</Text>
             <View style={styles.colorRow}>
               {SPACE_COLORS.map((c) => (
                 <TouchableOpacity
                   key={c}
-                  style={[
-                    styles.colorDot,
-                    { backgroundColor: c },
-                    selectedColor === c && styles.colorDotSelected,
-                  ]}
+                  style={[styles.colorDot, { backgroundColor: c }, selectedColor === c && styles.colorDotSelected]}
                   onPress={() => setSelectedColor(c)}
                 >
-                  {selectedColor === c && (
-                    <Feather name="check" size={14} color="#fff" />
-                  )}
+                  {selectedColor === c && <Feather name="check" size={14} color="#fff" />}
                 </TouchableOpacity>
               ))}
             </View>
-
             <TouchableOpacity
-              style={[
-                styles.createBtn,
-                {
-                  backgroundColor: newSpaceName.trim() ? colors.primary : colors.secondary,
-                },
-              ]}
+              style={[styles.createBtn, { backgroundColor: newSpaceName.trim() ? colors.primary : colors.secondary }]}
               onPress={() => {
                 if (!newSpaceName.trim()) return;
                 setCreateVisible(false);
                 setNewSpaceName("");
               }}
             >
-              <Text
-                style={[
-                  styles.createBtnText,
-                  { color: newSpaceName.trim() ? "#fff" : colors.gray400 },
-                ]}
-              >
-                Create Space
+              <Text style={[styles.createBtnText, { color: newSpaceName.trim() ? "#fff" : colors.gray400 }]}>
+                Criar Espaço
               </Text>
             </TouchableOpacity>
           </View>
@@ -253,63 +226,35 @@ const styles = StyleSheet.create({
   spaceTitleText: { fontSize: 17, fontWeight: "600" },
   scroll: { paddingHorizontal: 20, gap: 10 },
   flatList: { paddingHorizontal: 20, paddingTop: 8 },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.6,
-    marginTop: 4,
-    marginBottom: 2,
-  },
-  spaceCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    borderRadius: 16,
-    padding: 16,
-  },
+  sectionLabel: { fontSize: 12, fontWeight: "600", letterSpacing: 0.6, marginTop: 4, marginBottom: 2 },
+  spaceCard: { flexDirection: "row", alignItems: "center", gap: 14, borderRadius: 16, padding: 16 },
   spaceIconWrap: { width: 50, height: 50, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   spaceBody: { flex: 1, gap: 2 },
   spaceName: { fontSize: 15, fontWeight: "600" },
   spaceDesc: { fontSize: 12 },
   spaceCount: { fontSize: 11 },
-  sharedCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 8,
-  },
+  sharedCard: { flexDirection: "row", alignItems: "center", gap: 14, borderRadius: 16, padding: 16, marginTop: 8 },
   sharedIcon: { width: 50, height: 50, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   sharedTitle: { fontSize: 15, fontWeight: "500" },
   sharedSub: { fontSize: 12, marginTop: 2 },
   empty: { alignItems: "center", paddingTop: 80, gap: 10 },
   emptyIcon: { width: 72, height: 72, borderRadius: 22, alignItems: "center", justifyContent: "center", marginBottom: 4 },
   emptyTitle: { fontSize: 17, fontWeight: "600" },
-  emptySub: { fontSize: 14, color: "#8E8E93", textAlign: "center", paddingHorizontal: 40 },
+  emptySub: { fontSize: 14, textAlign: "center", paddingHorizontal: 40 },
   modalRoot: { flex: 1 },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "web" ? 67 : 16,
+    paddingTop: Platform.OS === "web" ? 20 : 16,
     paddingBottom: 16,
   },
   modalTitle: { fontSize: 20, fontWeight: "700" },
   modalClose: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   modalBody: { paddingHorizontal: 20, gap: 16 },
-  nameInput: {
-    height: 52,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-  },
-  colorSectionLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.6,
-  },
+  nameInput: { height: 52, borderRadius: 12, paddingHorizontal: 16, fontSize: 16 },
+  colorSectionLabel: { fontSize: 12, fontWeight: "600", letterSpacing: 0.6 },
   colorRow: { flexDirection: "row", gap: 12 },
   colorDot: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   colorDotSelected: { borderWidth: 2.5, borderColor: "#fff" },

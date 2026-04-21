@@ -2,7 +2,7 @@ import { BlurView } from "expo-blur";
 import { Feather } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
@@ -10,8 +10,6 @@ import { PricingModal } from "@/components/PricingModal";
 
 function ClassicTabLayout() {
   const colors = useColors();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -33,7 +31,7 @@ function ClassicTabLayout() {
           isIOS ? (
             <BlurView
               intensity={80}
-              tint={isDark ? "systemThickMaterialDark" : "systemThickMaterialLight"}
+              tint="systemThickMaterialLight"
               style={StyleSheet.absoluteFill}
             />
           ) : (
@@ -49,35 +47,35 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: "Início",
           tabBarIcon: ({ color }) => <Feather name="home" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
-          title: "Search",
+          title: "Buscar",
           tabBarIcon: ({ color }) => <Feather name="search" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="spaces"
         options={{
-          title: "Spaces",
+          title: "Espaços",
           tabBarIcon: ({ color }) => <Feather name="folder" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="analytics"
         options={{
-          title: "Analytics",
+          title: "Análises",
           tabBarIcon: ({ color }) => <Feather name="bar-chart-2" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: "Perfil",
           tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />,
         }}
       />
