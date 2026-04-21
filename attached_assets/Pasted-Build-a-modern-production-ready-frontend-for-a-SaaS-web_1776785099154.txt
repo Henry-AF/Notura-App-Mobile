@@ -1,0 +1,92 @@
+Build a modern, production-ready frontend for a SaaS web application called Notura, an AI-powered meeting assistant that transforms audio meetings into summaries, tasks, and insights.
+
+🧱 Tech Stack Requirements
+Use React (with Vite) or Next.js (App Router preferred)
+Use TypeScript
+Use Tailwind CSS for styling
+Use ShadCN/UI or a similar modern component library
+Use Lucide icons
+State management can be Zustand or React Context
+Routing: React Router (if Vite) or built-in (if Next.js)
+🎨 Design System
+Clean SaaS UI (inspired by Linear, Notion, Slack)
+Rounded corners (lg to xl)
+Soft shadows and subtle borders
+Color palette:
+Primary: purple/indigo (AI/tech feel)
+Success: green
+Warning: orange
+Neutral: gray scale
+Support Light and Dark Mode
+Responsive (mobile-first but optimized for desktop)
+📱 Pages to Build
+1. Authentication Page
+Login and Register
+Email/password inputs
+Optional social login buttons
+Clean centered layout
+2. Dashboard
+Greeting message (e.g., “Good afternoon, Henry”)
+Stats cards:
+Meetings this month
+Open tasks
+Time saved
+Section: Recent Meetings (list with status)
+Section: “Today’s Tasks”
+AI Insight card (highlighted)
+3. Meetings Page
+Search bar (by title/client)
+Filter tabs: All, Completed, Processing, Failed
+Table or list with:
+Meeting name
+Subtitle/description
+Date
+Status badge
+4. Meeting Details Page
+Tabs:
+Summary
+Transcript
+Tasks
+Task cards:
+Priority (High, Medium)
+Tags (e.g., “this week”)
+Assignee avatar
+Action buttons:
+Share (WhatsApp)
+Edit / Delete
+5. Create Meeting Page / Modal
+Upload audio file
+Record audio button (UI only, no need for real recording logic)
+Simple, focused UI
+6. Contacts Page
+List of contacts
+Basic structure for integrations (WhatsApp, etc.)
+7. Pricing Modal
+Free vs Pro plan comparison
+CTA button: “Upgrade”
+🧩 Components to Create
+Sidebar navigation (Dashboard, Meetings, Contacts)
+Topbar with user info
+Reusable Card component
+Badge component (status, priority)
+Tabs component
+Modal component
+Task item component
+⚙️ Behavior / UX
+Use mock data (no backend required)
+Add loading states (skeletons)
+Smooth transitions (hover, focus)
+Keep UI consistent and scalable
+📂 Folder Structure
+
+Organize the project with a clean architecture:
+
+/components
+/pages (or /app if Next.js)
+/hooks
+/store
+/lib
+/types
+🎯 Goal
+
+Deliver a clean, scalable, and realistic SaaS frontend that looks like a real product ready for production and investor demos.

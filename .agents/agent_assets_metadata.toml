@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "4hXv8K9_nS8GHfc4IUxVo"
+uri = "file://artifacts/notura/assets/images/icon.png"
+type = "image"
+title = "notura app icon"
