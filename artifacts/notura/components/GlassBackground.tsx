@@ -14,5 +14,5 @@ export function GlassBackground({ children }: GlassBackgroundProps) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#FFFFFF" },
+  root: { flex: 1, backgroundColor: "#F9F3FD" },
 });

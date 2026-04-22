@@ -1,289 +1,522 @@
+﻿import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
   Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppNavbar } from "@/components/AppNavbar";
 import { CircularProgress } from "@/components/CircularProgress";
-import { HomeRecentMeetingCard } from "@/components/HomeRecentMeetingCard";
-import { useApp } from "@/context/AppContext";
-import { useColors } from "@/hooks/useColors";
-import type { Conversation } from "@/lib/mockData";
 
-const PLAN_LIMITS = {
-  free: 5,
-  pro: null,
-  platinum: null,
-} as const;
+// ─── Design Tokens ────────────────────────────────────────────────────────────
+// Seguir ao pé da letra — não substituir nenhum hex
+const BG_PAGE        = "#F9F3FD";
+const PRIMARY        = "#AF52DE";
+const CARD_DARK      = "#2A4A52";
+const WHITE          = "#FFFFFF";
+const TEXT_PRIMARY   = "#1A1A1A";
+const TEXT_SECONDARY = "#6B6B6B";
+const BORDER         = "#E5D6F5";
+const PLACEHOLDER    = "#B0B0B0";
+const PROGRESS_TRACK = "#F0E5FA";
 
+// ─── Helper ───────────────────────────────────────────────────────────────────
 function saudacao() {
   const h = new Date().getHours();
-  if (h < 12) return { text: "Bom dia", emoji: "👋" };
-  if (h < 18) return { text: "Boa tarde", emoji: "☀️" };
-  return { text: "Boa noite", emoji: "🌙" };
+  if (h < 12) return "Bom dia,";
+  if (h < 18) return "Boa tarde,";
+  return "Boa noite,";
 }
 
-function parseConversationMonthKey(dateLabel: string, dateShort: string) {
-  const now = new Date();
-  const monthMap: Record<string, number> = {
-    jan: 0,
-    fev: 1,
-    mar: 2,
-    abr: 3,
-    mai: 4,
-    jun: 5,
-    jul: 6,
-    ago: 7,
-    set: 8,
-    out: 9,
-    nov: 10,
-    dez: 11,
-  };
-
-  const normalizedShort = dateShort.trim().toLowerCase();
-  if (normalizedShort === "hoje" || normalizedShort === "agora mesmo") {
-    return `${now.getFullYear()}-${now.getMonth()}`;
-  }
-
-  const match = dateLabel
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .match(/(\d{1,2})\s+de?\s*([a-z]{3})\.?\s+de?\s*(\d{4})|(\d{1,2})\s+([a-z]{3})\s+(\d{4})/);
-
-  if (!match) return null;
-
-  const monthToken = match[2] ?? match[5];
-  const yearToken = match[3] ?? match[6];
-  const monthIndex = monthToken ? monthMap[monthToken] : undefined;
-  if (monthIndex === undefined || !yearToken) return null;
-
-  return `${Number(yearToken)}-${monthIndex}`;
+// ─── FilterChip ───────────────────────────────────────────────────────────────
+function FilterChip({
+  icon,
+  label,
+}: {
+  icon: React.ComponentProps<typeof Feather>["name"];
+  label: string;
+}) {
+  return (
+    <View style={styles.chip}>
+      <Feather name={icon} size={14} color={PRIMARY} />
+      <Text style={styles.chipText}>{label}</Text>
+    </View>
+  );
 }
 
-function formatPlanLabel(plan: "free" | "pro" | "platinum") {
-  return plan.toUpperCase();
+// ─── ProjectCard ──────────────────────────────────────────────────────────────
+function ProjectCard({
+  name,
+  category,
+  date,
+  progress,
+  icon,
+}: {
+  name: string;
+  category: string;
+  date: string;
+  progress: number;
+  icon: React.ComponentProps<typeof Feather>["name"];
+}) {
+  return (
+    <View style={styles.projectCard}>
+      {/* Topo: data + menu */}
+      <View style={styles.cardTopRow}>
+        <Text style={styles.cardDate}>{date}</Text>
+        <Feather name="more-horizontal" size={16} color={PLACEHOLDER} />
+      </View>
+
+      {/* Área de ícone */}
+      <View style={styles.cardIconArea}>
+        <View style={styles.cardIconWrap}>
+          <Feather name={icon} size={24} color={PRIMARY} />
+        </View>
+      </View>
+
+      {/* Rodapé */}
+      <Text style={styles.cardName}>{name}</Text>
+      <Text style={styles.cardCategory}>{category}</Text>
+      <View style={styles.cardProgressRow}>
+        <View style={styles.cardProgressBg}>
+          <View style={[styles.cardProgressFill, { width: `${progress}%` as any }]} />
+        </View>
+        <Text style={styles.cardProgressPct}>{progress}%</Text>
+      </View>
+    </View>
+  );
 }
 
-function getConversationSortTime(conversation: Conversation) {
-  if (conversation.recordedAt) {
-    const timestamp = new Date(conversation.recordedAt).getTime();
-    if (!Number.isNaN(timestamp)) return timestamp;
-  }
-
-  return 0;
+// ─── VerMaisCard ──────────────────────────────────────────────────────────────
+function VerMaisCard() {
+  return (
+    <View style={styles.verMaisCard}>
+      <Text style={styles.verMaisLabel}>Ver mais</Text>
+      <Text style={styles.verMaisCount}>+5 projetos</Text>
+      <TouchableOpacity style={styles.verMaisBtn} activeOpacity={0.8}>
+        <Feather name="arrow-right" size={18} color={WHITE} />
+      </TouchableOpacity>
+    </View>
+  );
 }
 
-function formatRelativeRecordedAt(recordedAt?: string) {
-  if (!recordedAt) return "Hoje";
-
-  const recordedTimestamp = new Date(recordedAt).getTime();
-  if (Number.isNaN(recordedTimestamp)) return "Hoje";
-
-  const diffInMinutes = Math.max(0, Math.floor((Date.now() - recordedTimestamp) / (60 * 1000)));
-
-  if (diffInMinutes < 1) return "Agora mesmo";
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} minuto${diffInMinutes > 1 ? "s" : ""} atrás`;
-  }
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    return `${diffInHours} hora${diffInHours > 1 ? "s" : ""} atrás`;
-  }
-
-  return "Hoje";
-}
-
+// ─── HomeScreen ───────────────────────────────────────────────────────────────
 export default function HomeScreen() {
-  const colors = useColors();
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const { conversations, currentUser } = useApp();
+  const insets    = useSafeAreaInsets();
+  const router    = useRouter();
+  const [search, setSearch] = useState("");
 
-  const bottomPad = Platform.OS === "web" ? 34 + 100 : insets.bottom + 110;
-
-  const recentCompletedMeetingsToday = conversations
-    .filter(
-      (conversation) =>
-        conversation.status === "completed" &&
-        conversation.dateShort.trim().toLowerCase() === "hoje"
-    )
-    .sort((left, right) => getConversationSortTime(right) - getConversationSortTime(left))
-    .slice(0, 3);
-  const firstName = currentUser.name.trim().split(/\s+/)[0] || currentUser.name;
-  const greeting = saudacao();
-  const meetingsProcessedToday = conversations.filter(
-    (conversation) => conversation.dateShort.trim().toLowerCase() === "hoje"
-  ).length;
-  const currentMonthKey = `${new Date().getFullYear()}-${new Date().getMonth()}`;
-  const meetingsThisMonth = conversations.filter((conversation) => {
-    return parseConversationMonthKey(conversation.date, conversation.dateShort) === currentMonthKey;
-  }).length;
-  const currentPlanLimit = PLAN_LIMITS[currentUser.plan];
-  const planUsageProgress = currentPlanLimit
-    ? Math.min(Math.round((meetingsThisMonth / currentPlanLimit) * 100), 100)
-    : Math.min(Math.max(meetingsThisMonth * 8, 12), 100);
-  const meetingsRemaining = currentPlanLimit === null ? null : Math.max(currentPlanLimit - meetingsThisMonth, 0);
+  const topPad    = Platform.OS === "web" ? 16 : insets.top + 16;
+  const bottomPad = Platform.OS === "web" ? 120 : insets.bottom + 110;
 
   return (
     <ScrollView
+      style={styles.scrollView}
       contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
       showsVerticalScrollIndicator={false}
     >
-      <AppNavbar title="Início" />
-      <View style={styles.content}>
-
-      <View style={styles.greeting}>
-        <Text style={styles.greetingLine}>
-          {greeting.text}, {firstName} {greeting.emoji}
-        </Text>
-        <Text style={[styles.greetingSubline, { color: colors.bodyText }]}>
-          Sua inteligência processou{" "}
-          <Text style={[styles.greetingSublineStrong, { color: colors.heading }]}>
-            {meetingsProcessedToday} reuniões
-          </Text>{" "}
-          hoje.
-        </Text>
-      </View>
-
-      <View
-        style={[
-          styles.heroCard,
-          styles.sectionSpacingLg,
-          Platform.OS === "ios" && { shadowColor: "#000000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8 },
-          Platform.OS === "android" && { elevation: 2 },
-          Platform.OS === "web" && { boxShadow: "0 2px 8px rgba(0,0,0,0.04)" } as any,
-        ]}
-      >
-        <View style={styles.heroLeft}>
-          <View style={styles.heroPlanRow}>
-            <Text style={styles.heroPlanLabel}>PLANO</Text>
-            <View style={[styles.heroPlanPill, { backgroundColor: "rgba(94,76,235,0.10)" }]}>
-              <Text style={[styles.heroPlanPillText, { color: colors.primary }]}>
-                {formatPlanLabel(currentUser.plan)}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.heroCardTitle}>Uso do seu plano</Text>
-          <Text style={styles.heroCardSub}>
-            {currentPlanLimit === null
-              ? `${meetingsThisMonth} reuniões processadas neste mês no plano ilimitado.`
-              : `${meetingsRemaining} reuniões disponíveis de ${currentPlanLimit} no seu ciclo mensal.`}
-          </Text>
-          <TouchableOpacity style={styles.heroCtaBtn} onPress={() => router.push("/(tabs)/search")}>
-            <Text style={styles.heroCtaBtnText}>
-              Ver reuniões
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.heroRight}>
-          <View style={styles.progressRingWrap}>
-            <CircularProgress
-              size={76}
-              strokeWidth={7}
-              progress={planUsageProgress}
-              color="#5E4CEB"
-              trackColor="rgba(94,76,235,0.14)"
-            />
-            <View style={styles.progressRingCenter}>
-              <Text style={styles.progressPct}>{planUsageProgress}%</Text>
-              <Text style={styles.progressLabel}>
-                {currentPlanLimit === null ? "uso" : "do plano"}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      <View style={[styles.sectionRow, styles.sectionSpacingLg]}>
-        <Text style={[styles.sectionTitle, { color: colors.heading }]}>Reuniões Recentes</Text>
-        <TouchableOpacity onPress={() => router.push("/(tabs)/search")}>
-          <Text style={[styles.seeAll, { color: colors.primary }]}>Ver tudo</Text>
+      {/* 1. Header */}
+      <View style={[styles.header, { paddingTop: topPad }]}>
+        <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7}>
+          <Feather name="menu" size={24} color={TEXT_PRIMARY} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7}>
+          <Feather name="bell" size={24} color={TEXT_PRIMARY} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.recentMeetingsList}>
-        {recentCompletedMeetingsToday.length > 0 ? (
-          recentCompletedMeetingsToday.map((conversation) => (
-            <HomeRecentMeetingCard
-              key={conversation.id}
-              conversation={conversation}
-              relativeRecordedAt={formatRelativeRecordedAt(conversation.recordedAt)}
-            />
-          ))
-        ) : (
-          <View style={[styles.emptyRecentState, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.emptyRecentStateText, { color: colors.bodyText }]}>
-              Nenhuma reunião foi feita hoje.
-            </Text>
+      <View style={styles.content}>
+        {/* 2. Saudação */}
+        <View style={styles.greeting}>
+          <Text style={styles.greetingSmall}>{saudacao()}</Text>
+          <Text style={styles.greetingTitle}>
+            {"Vamos gravar suas\n"}
+            <Text style={styles.greetingAccent}>{"reuniões"}</Text>
+            {" hoje"}
+          </Text>
+        </View>
+
+        {/* 3. Campo de busca */}
+        <View style={styles.searchWrap}>
+          <Feather name="search" size={16} color={PRIMARY} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar projetos, reuniões..."
+            placeholderTextColor={PLACEHOLDER}
+            value={search}
+            onChangeText={setSearch}
+            returnKeyType="search"
+          />
+        </View>
+
+        {/* 4. Card de status */}
+        <View style={styles.statusCard}>
+          <View style={styles.statusLeft}>
+            <Text style={styles.statusTitle}>Seus projetos estão indo bem</Text>
+            <Text style={styles.statusSub}>3 tarefas pendentes esta semana</Text>
+            <TouchableOpacity
+              style={styles.statusBtn}
+              activeOpacity={0.82}
+              onPress={() => router.push("/schedule")}
+            >
+              <Text style={styles.statusBtnText}>Ver tarefas</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </View>
+          <View style={styles.statusRight}>
+            <View style={styles.progressWrap}>
+              <CircularProgress
+                size={72}
+                strokeWidth={7}
+                progress={73}
+                color={PRIMARY}
+                trackColor="rgba(255,255,255,0.15)"
+              />
+              <View style={styles.progressCenter}>
+                <Text style={styles.progressPct}>73%</Text>
+                <Text style={styles.progressLabel}>feito</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* 5. Filtros */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScroll}
+          contentContainerStyle={styles.filterRow}
+        >
+          <FilterChip icon="calendar" label="Agenda de hoje" />
+          <FilterChip icon="bookmark" label="Destaques" />
+          <FilterChip icon="zap" label="IA Insights" />
+        </ScrollView>
+
+        {/* 6. Header da seção */}
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>Projetos em andamento</Text>
+          <TouchableOpacity activeOpacity={0.7}>
+            <Text style={styles.seeAll}>Ver tudo</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 7. Grid de projetos */}
+        <View style={styles.grid}>
+          <View style={styles.gridItem}>
+            <ProjectCard
+              name="Marketing"
+              category="Campanha"
+              date="21 mai"
+              progress={87}
+              icon="radio"
+            />
+          </View>
+          <View style={styles.gridItem}>
+            <VerMaisCard />
+          </View>
+        </View>
       </View>
     </ScrollView>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  scroll: {},
-  content: { paddingHorizontal: 20, paddingTop: 6 },
-  sectionSpacingSm: { marginTop: 10 },
-  sectionSpacingMd: { marginTop: 14 },
-  sectionSpacingLg: { marginTop: 24 },
-  greeting: { gap: 6, marginTop: 4 },
-  greetingLine: { fontSize: 34, fontWeight: "700", lineHeight: 41, color: "#1C1C1E", letterSpacing: -1.05 },
-  greetingSubline: { fontSize: 13, lineHeight: 18 },
-  greetingSublineStrong: { fontWeight: "700" },
-  heroCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 22,
-    padding: 22,
+  // Fundo: #F9F3FD em toda a tela
+  scrollView: {
+    flex: 1,
+    backgroundColor: BG_PAGE,
+  },
+  scroll: {
+    flexGrow: 1,
+    backgroundColor: BG_PAGE,
+  },
+
+  // 1. Header
+  header: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  heroLeft: { flex: 1, gap: 8 },
-  heroPlanRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  heroPlanLabel: { fontSize: 11, fontWeight: "600", letterSpacing: 0.8, color: "rgba(28,28,30,0.48)" },
-  heroPlanPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999 },
-  heroPlanPillText: { fontSize: 11, fontWeight: "700", letterSpacing: 0.4 },
-  heroCardTitle: { fontSize: 17, fontWeight: "600", color: "#1C1C1E", lineHeight: 23, letterSpacing: -0.17 },
-  heroCardSub: { fontSize: 13, color: "#6D6D72", lineHeight: 18 },
-  heroCtaBtn: {
-    marginTop: 8,
-    backgroundColor: "#5E4CEB",
-    alignSelf: "flex-start",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
-    height: 38,
-    borderRadius: 9999,
+    paddingBottom: 4,
+  },
+  iconBtn: {
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
-  heroCtaBtnText: { fontSize: 13, fontWeight: "600", color: "#FFFFFF" },
-  heroRight: { paddingLeft: 12 },
-  progressRingWrap: { position: "relative", alignItems: "center", justifyContent: "center" },
-  progressRingCenter: { position: "absolute", alignItems: "center" },
-  progressPct: { fontSize: 16, fontWeight: "700", color: "#1C1C1E" },
-  progressLabel: { fontSize: 10, color: "rgba(28,28,30,0.60)" },
-  sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  sectionTitle: { fontSize: 17, fontWeight: "700" },
-  seeAll: { fontSize: 14, fontWeight: "500" },
-  recentMeetingsList: { marginTop: 14 },
-  emptyRecentState: {
-    borderRadius: 18,
-    borderWidth: 0.5,
-    paddingHorizontal: 16,
-    paddingVertical: 18,
+
+  content: {
+    paddingHorizontal: 20,
   },
-  emptyRecentStateText: {
+
+  // 2. Saudação
+  greeting: {
+    marginTop: 12,
+  },
+  greetingSmall: {
+    fontSize: 15,
+    fontWeight: "400",
+    color: TEXT_SECONDARY,
+    lineHeight: 22,
+  },
+  greetingTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: TEXT_PRIMARY,
+    lineHeight: 36,
+    marginTop: 2,
+  },
+  greetingAccent: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: PRIMARY,
+  },
+
+  // 3. Campo de busca
+  searchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: WHITE,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    height: 46,
+    paddingHorizontal: 16,
+    marginTop: 20,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
     fontSize: 14,
-    lineHeight: 20,
+    color: TEXT_PRIMARY,
+    height: "100%",
+  },
+
+  // 4. Card de status
+  statusCard: {
+    backgroundColor: CARD_DARK,
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statusLeft: {
+    flex: 1,
+  },
+  statusTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: WHITE,
+    lineHeight: 21,
+  },
+  statusSub: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: "rgba(255,255,255,0.65)",
+    marginTop: 4,
+    lineHeight: 19,
+  },
+  statusBtn: {
+    marginTop: 16,
+    alignSelf: "flex-start",
+    backgroundColor: PRIMARY,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  statusBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: WHITE,
+  },
+  statusRight: {
+    paddingLeft: 16,
+  },
+  progressWrap: {
+    position: "relative",
+    width: 72,
+    height: 72,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  progressCenter: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  progressPct: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: WHITE,
+    lineHeight: 18,
+  },
+  progressLabel: {
+    fontSize: 10,
+    fontWeight: "400",
+    color: "rgba(255,255,255,0.65)",
+    lineHeight: 14,
+  },
+
+  // 5. Filtros
+  filterScroll: {
+    marginTop: 20,
+  },
+  filterRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingRight: 4,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: TEXT_PRIMARY,
+  },
+
+  // 6. Seção header
+  sectionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 28,
+    marginBottom: 14,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: TEXT_PRIMARY,
+  },
+  seeAll: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: PRIMARY,
+  },
+
+  // 7. Grid
+  grid: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  gridItem: {
+    flex: 1,
+  },
+
+  // Card normal
+  projectCard: {
+    backgroundColor: WHITE,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+    minHeight: 160,
+  },
+  cardTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cardDate: {
+    fontSize: 12,
+    color: TEXT_SECONDARY,
+  },
+  cardIconArea: {
+    height: 56,
+    alignItems: "flex-start",
+    justifyContent: "center",
+    marginTop: 8,
+  },
+  cardIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: BG_PAGE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: TEXT_PRIMARY,
+    marginTop: 10,
+  },
+  cardCategory: {
+    fontSize: 12,
+    color: TEXT_SECONDARY,
+    marginTop: 2,
+  },
+  cardProgressRow: {
+    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  cardProgressBg: {
+    flex: 1,
+    height: 4,
+    borderRadius: 4,
+    backgroundColor: PROGRESS_TRACK,
+    overflow: "hidden",
+  },
+  cardProgressFill: {
+    height: "100%",
+    borderRadius: 4,
+    backgroundColor: PRIMARY,
+  },
+  cardProgressPct: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: PRIMARY,
+    minWidth: 30,
+    textAlign: "right",
+  },
+
+  // Card "Ver mais"
+  verMaisCard: {
+    backgroundColor: CARD_DARK,
+    borderRadius: 14,
+    padding: 14,
+    minHeight: 160,
+    justifyContent: "center",
+    alignItems: "flex-start",
+  },
+  verMaisLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.70)",
+    marginBottom: 6,
+  },
+  verMaisCount: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: PRIMARY,
+  },
+  verMaisBtn: {
+    marginTop: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
+
