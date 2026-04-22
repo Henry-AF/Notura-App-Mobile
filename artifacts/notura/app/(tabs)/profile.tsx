@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AppNavbar } from "@/components/AppNavbar";
 import { Avatar } from "@/components/Avatar";
 import { GlassCard } from "@/components/GlassCard";
 import { useApp } from "@/context/AppContext";
@@ -40,7 +41,6 @@ export default function ProfileScreen() {
   const [autoJoin, setAutoJoin] = useState(true);
   const [aiModel, setAiModel] = useState("GPT-4o");
 
-  const topPad = Platform.OS === "web" ? 20 : insets.top + 8;
   const bottomPad = Platform.OS === "web" ? 34 + 100 : insets.bottom + 110;
 
   const totalHours = conversations.reduce((acc, c) => {
@@ -54,16 +54,11 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.scroll, { paddingTop: topPad, paddingBottom: bottomPad }]}
+      contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.topBar}>
-        <View style={{ width: 38 }} />
-        <Text style={[styles.screenTitle, { color: colors.heading }]}>Perfil</Text>
-        <TouchableOpacity style={[styles.iconBtn, { backgroundColor: "rgba(175,82,222,0.08)" }]}>
-          <Feather name="settings" size={18} color={colors.heading} />
-        </TouchableOpacity>
-      </View>
+      <AppNavbar title="Perfil" />
+      <View style={styles.content}>
 
       <View style={[styles.profileHeader, { backgroundColor: colors.darkCard }]}>
         <View style={[styles.avatarRing]}>
@@ -73,7 +68,11 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.profileName}>{currentUser.name}</Text>
         <Text style={styles.profileRole}>
-          {currentUser.plan === "pro" ? "Pro · Notura AI" : "Notura AI — Plano Gratuito"}
+          {currentUser.plan === "free"
+            ? "Notura AI — Plano Gratuito"
+            : currentUser.plan === "platinum"
+              ? "Platinum · Notura AI"
+              : "Pro · Notura AI"}
         </Text>
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
@@ -101,13 +100,13 @@ export default function ProfileScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.rowTitle, { color: colors.heading }]}>
-                {currentUser.plan === "pro" ? "Plano Pro ativo" : "Atualizar para Pro"}
+                {currentUser.plan === "free" ? "Atualizar para Pro" : "Plano premium ativo"}
               </Text>
               <Text style={[styles.rowSub, { color: colors.bodyText }]}>
-                {currentUser.plan === "pro" ? "Todos os recursos desbloqueados" : "Gravações ilimitadas + IA avançada"}
+                {currentUser.plan === "free" ? "Gravações ilimitadas + IA avançada" : "Todos os recursos desbloqueados"}
               </Text>
             </View>
-            {currentUser.plan !== "pro" && (
+            {currentUser.plan === "free" && (
               <View style={[styles.pill, { backgroundColor: colors.primary }]}>
                 <Text style={styles.pillText}>Upgrade</Text>
               </View>
@@ -254,14 +253,14 @@ export default function ProfileScreen() {
       </TouchableOpacity>
 
       <Text style={[styles.version, { color: colors.gray400 }]}>Notura v2.0 · Criado com IA</Text>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 20, gap: 12 },
-  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  screenTitle: { fontSize: 17, fontWeight: "600" },
+  scroll: {},
+  content: { paddingHorizontal: 20, gap: 12 },
   iconBtn: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   profileHeader: {
     borderRadius: 24,

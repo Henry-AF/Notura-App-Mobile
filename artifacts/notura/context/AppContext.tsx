@@ -10,6 +10,7 @@ import {
   mockHighlights,
   mockIntegrations,
   type ActionItem,
+  type ActionItemStatus,
   type Conversation,
   type Highlight,
   type Integration,
@@ -20,12 +21,20 @@ interface AppContextType {
   highlights: Highlight[];
   integrations: Integration[];
   addConversation: (c: Conversation) => void;
-  toggleActionItem: (conversationId: string, actionId: string) => void;
+  updateActionItem: (conversationId: string, actionId: string, updates: Partial<ActionItem>) => void;
+  removeActionItem: (conversationId: string, actionId: string) => void;
   addHighlight: (h: Highlight) => void;
   removeHighlight: (id: string) => void;
   toggleIntegration: (id: string) => void;
   isAuthenticated: boolean;
-  currentUser: { name: string; email: string; initials: string; plan: "free" | "pro" };
+  currentUser: {
+    name: string;
+    email: string;
+    initials: string;
+    avatarColor?: string;
+    avatarUrl?: string;
+    plan: "free" | "pro" | "platinum";
+  };
   login: (email: string) => void;
   logout: () => void;
   pricingVisible: boolean;
@@ -36,17 +45,38 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | null>(null);
 
+function normalizeActionStatus(action: ActionItem): ActionItemStatus {
+  if (action.status) return action.status;
+  return action.completed ? "done" : "todo";
+}
+
+function normalizeConversations(conversations: Conversation[]) {
+  return conversations.map((conversation) => ({
+    ...conversation,
+    actionItems: (conversation.actionItems ?? []).map((action) => {
+      const status = normalizeActionStatus(action);
+      return {
+        ...action,
+        status,
+        completed: status === "done",
+      };
+    }),
+  }));
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
+  const [conversations, setConversations] = useState<Conversation[]>(normalizeConversations(mockConversations));
   const [highlights, setHighlights] = useState<Highlight[]>(mockHighlights);
   const [integrations, setIntegrations] = useState<Integration[]>(mockIntegrations);
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pricingVisible, setPricingVisible] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [currentUser] = useState({
     name: "Henry Costa",
     email: "henry@notura.ai",
     initials: "HC",
+    avatarColor: "#5341CD",
+    avatarUrl: undefined,
     plan: "free" as const,
   });
 
@@ -57,31 +87,70 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   async function loadData() {
     try {
       const stored = await AsyncStorage.getItem("conversations_v2");
-      if (stored) setConversations(JSON.parse(stored));
+      if (stored) setConversations(normalizeConversations(JSON.parse(stored)));
+      
+      const auth = await AsyncStorage.getItem("isAuthenticated");
+      if (auth === "true") setIsAuthenticated(true);
+    } catch {}
+  }
+
+  async function persistConversations(nextConversations: Conversation[]) {
+    try {
+      await AsyncStorage.setItem("conversations_v2", JSON.stringify(nextConversations));
     } catch {}
   }
 
   async function addConversation(c: Conversation) {
-    const updated = [c, ...conversations];
+    const updated = normalizeConversations([c, ...conversations]);
     setConversations(updated);
-    try {
-      await AsyncStorage.setItem("conversations_v2", JSON.stringify(updated));
-    } catch {}
+    await persistConversations(updated);
   }
 
-  function toggleActionItem(conversationId: string, actionId: string) {
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.id === conversationId
-          ? {
-              ...c,
-              actionItems: (c.actionItems ?? []).map((a) =>
-                a.id === actionId ? { ...a, completed: !a.completed } : a
-              ),
-            }
-          : c
-      )
-    );
+  function updateActionItem(conversationId: string, actionId: string, updates: Partial<ActionItem>) {
+    setConversations((prev) => {
+      const next = normalizeConversations(
+        prev.map((conversation) =>
+          conversation.id === conversationId
+            ? {
+                ...conversation,
+                actionItems: (conversation.actionItems ?? []).map((action) =>
+                  action.id === actionId
+                    ? {
+                        ...action,
+                        ...updates,
+                        completed:
+                          updates.status !== undefined
+                            ? updates.status === "done"
+                            : updates.completed ?? action.completed,
+                      }
+                    : action
+                ),
+              }
+            : conversation
+        )
+      );
+
+      persistConversations(next);
+      return next;
+    });
+  }
+
+  function removeActionItem(conversationId: string, actionId: string) {
+    setConversations((prev) => {
+      const next = normalizeConversations(
+        prev.map((conversation) =>
+          conversation.id === conversationId
+            ? {
+                ...conversation,
+                actionItems: (conversation.actionItems ?? []).filter((action) => action.id !== actionId),
+              }
+            : conversation
+        )
+      );
+
+      persistConversations(next);
+      return next;
+    });
   }
 
   function addHighlight(h: Highlight) {
@@ -100,10 +169,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   function login(email: string) {
     setIsAuthenticated(true);
+    AsyncStorage.setItem("isAuthenticated", "true").catch(() => {});
   }
 
   function logout() {
     setIsAuthenticated(false);
+    AsyncStorage.setItem("isAuthenticated", "false").catch(() => {});
   }
 
   return (
@@ -113,7 +184,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         highlights,
         integrations,
         addConversation,
-        toggleActionItem,
+        updateActionItem,
+        removeActionItem,
         addHighlight,
         removeHighlight,
         toggleIntegration,

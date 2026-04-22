@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AppNavbar } from "@/components/AppNavbar";
 import { Avatar } from "@/components/Avatar";
 import { GlassCard } from "@/components/GlassCard";
 import { useColors } from "@/hooks/useColors";
@@ -24,18 +25,18 @@ export default function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
   const [period, setPeriod] = useState<"week" | "month">("week");
 
-  const topPad = Platform.OS === "web" ? 20 : insets.top + 8;
   const bottomPad = Platform.OS === "web" ? 34 + 100 : insets.bottom + 110;
   const speakerList = Object.values(SPEAKERS);
   const talkRatio = mockStats.talkToListenRatio;
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.scroll, { paddingTop: topPad, paddingBottom: bottomPad }]}
+      contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.topRow}>
-        <Text style={[styles.title, { color: colors.heading }]}>Análises</Text>
+      <AppNavbar title="Análises" />
+      <View style={styles.content}>
+      <View style={styles.periodRow}>
         <GlassCard noPad noShadow style={styles.periodToggle}>
           {(["week", "month"] as const).map((p) => (
             <TouchableOpacity
@@ -165,14 +166,15 @@ export default function AnalyticsScreen() {
           </View>
         </View>
       </GlassCard>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 20, gap: 14 },
-  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  title: { fontSize: 26, fontWeight: "600", letterSpacing: -0.5 },
+  scroll: {},
+  content: { paddingHorizontal: 20, gap: 14 },
+  periodRow: { alignItems: "flex-end" },
   periodToggle: { flexDirection: "row", borderRadius: 12, padding: 3, gap: 0 },
   periodBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9 },
   periodBtnActive: {},

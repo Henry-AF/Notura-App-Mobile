@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -19,6 +19,12 @@ import { useColors } from "@/hooks/useColors";
 
 type Mode = "login" | "register";
 
+const TRUST_METRICS = [
+  { value: "Privado", label: "acesso seguro" },
+  { value: "IA", label: "memória organizada" },
+  { value: "Sync", label: "fluxo contínuo" },
+];
+
 export default function AuthScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -35,18 +41,20 @@ export default function AuthScreen() {
   async function handleSubmit() {
     if (!email || !password) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise((resolve) => setTimeout(resolve, 800));
     login(email);
     router.replace("/(tabs)");
     setLoading(false);
   }
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <View style={[styles.root, { backgroundColor: "#FBFBFE" }]}>
       <LinearGradient
-        colors={["#5341CD22", "#5341CD00"]}
+        colors={["rgba(94,76,235,0.12)", "rgba(94,76,235,0.03)", "rgba(251,251,254,0)"]}
+        locations={[0, 0.38, 1]}
         style={styles.topGradient}
       />
+      <View style={styles.ambientOrb} />
 
       <KeyboardAvoidingView
         style={styles.kav}
@@ -56,109 +64,104 @@ export default function AuthScreen() {
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingTop: Platform.OS === "web" ? 80 : insets.top + 40,
-              paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20,
+              paddingTop: Platform.OS === "web" ? 72 : insets.top + 28,
+              paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 24,
             },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.logoWrap}>
-            <View
-              style={[
-                styles.logoIcon,
-                { backgroundColor: colors.primary },
-              ]}
-            >
-              <Feather name="mic" size={28} color="#fff" />
+          <View style={styles.brandRow}>
+            <Text style={[styles.brandText, { color: colors.heading }]}>NOTURA</Text>
+            <View style={styles.brandPill}>
+              <Text style={[styles.brandPillText, { color: colors.primary }]}>Executive Access</Text>
             </View>
-            <Text style={[styles.logoText, { color: colors.foreground }]}>
-              Notura
+          </View>
+
+          <View style={styles.heroPanel}>
+            <Text style={[styles.heroTitle, { color: colors.heading }]}>Entre com clareza.</Text>
+            <Text style={[styles.heroSubtitle, { color: colors.bodyText }]}>
+              Workspace de reuniões com memória organizada para decisões rápidas, contexto confiável e execução sem ruído.
             </Text>
-            <Text style={[styles.logoTagline, { color: colors.gray500 }]}>
-              AI Meeting Assistant
-            </Text>
+
+            <View style={styles.metricRow}>
+              {TRUST_METRICS.map((metric) => (
+                <View key={metric.label} style={styles.metricCard}>
+                  <Text style={styles.metricValue}>{metric.value}</Text>
+                  <Text style={styles.metricLabel}>{metric.label}</Text>
+                </View>
+              ))}
+            </View>
           </View>
 
           <View
             style={[
               styles.card,
-              { backgroundColor: colors.card, borderColor: colors.border },
+              Platform.OS === "ios" && styles.cardShadowIos,
+              Platform.OS === "android" && styles.cardShadowAndroid,
+              Platform.OS === "web" && styles.cardShadowWeb,
             ]}
           >
-            <View style={styles.modeSwitcher}>
-              {(["login", "register"] as Mode[]).map((m) => (
-                <TouchableOpacity
-                  key={m}
-                  style={[
-                    styles.modeTab,
-                    {
-                      backgroundColor:
-                        mode === m ? colors.primary : "transparent",
-                    },
-                  ]}
-                  onPress={() => setMode(m)}
-                  activeOpacity={0.7}
-                >
-                  <Text
+            <View style={styles.cardHeader}>
+              <View>
+                <Text style={[styles.cardEyebrow, { color: colors.primary }]}>
+                  {mode === "login" ? "Entrar" : "Criar conta"}
+                </Text>
+                <Text style={[styles.cardTitle, { color: colors.heading }]}>
+                  {mode === "login" ? "Acesse seu workspace" : "Crie seu acesso"}
+                </Text>
+              </View>
+              <View style={styles.modeSwitcher}>
+                {(["login", "register"] as Mode[]).map((currentMode) => (
+                  <TouchableOpacity
+                    key={currentMode}
                     style={[
-                      styles.modeTabText,
-                      { color: mode === m ? "#fff" : colors.gray500 },
+                      styles.modeTab,
+                      currentMode === mode && { backgroundColor: colors.primary },
                     ]}
+                    onPress={() => setMode(currentMode)}
+                    activeOpacity={0.84}
                   >
-                    {m === "login" ? "Sign In" : "Sign Up"}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.modeTabText,
+                        { color: currentMode === mode ? "#FFFFFF" : colors.gray600 },
+                      ]}
+                    >
+                      {currentMode === "login" ? "Entrar" : "Criar conta"}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
-            {mode === "register" && (
+            {mode === "register" ? (
               <View style={styles.fieldWrap}>
-                <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>
-                  Full name
-                </Text>
-                <View
-                  style={[
-                    styles.inputWrap,
-                    {
-                      backgroundColor: colors.background,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
+                <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>Nome completo</Text>
+                <View style={styles.inputWrap}>
                   <Feather name="user" size={16} color={colors.gray400} />
                   <TextInput
-                    style={[styles.input, { color: colors.foreground }]}
+                    style={[styles.input, { color: colors.heading }]}
                     value={name}
                     onChangeText={setName}
                     placeholder="Henry Costa"
-                    placeholderTextColor={colors.gray300}
+                    placeholderTextColor={colors.gray400}
                     autoCapitalize="words"
                   />
                 </View>
               </View>
-            )}
+            ) : null}
 
             <View style={styles.fieldWrap}>
-              <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>
-                Email
-              </Text>
-              <View
-                style={[
-                  styles.inputWrap,
-                  {
-                    backgroundColor: colors.background,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
+              <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>Email</Text>
+              <View style={styles.inputWrap}>
                 <Feather name="mail" size={16} color={colors.gray400} />
                 <TextInput
-                  style={[styles.input, { color: colors.foreground }]}
+                  style={[styles.input, { color: colors.heading }]}
                   value={email}
                   onChangeText={setEmail}
-                  placeholder="you@example.com"
-                  placeholderTextColor={colors.gray300}
+                  placeholder="voce@empresa.com"
+                  placeholderTextColor={colors.gray400}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -167,29 +170,19 @@ export default function AuthScreen() {
             </View>
 
             <View style={styles.fieldWrap}>
-              <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>
-                Password
-              </Text>
-              <View
-                style={[
-                  styles.inputWrap,
-                  {
-                    backgroundColor: colors.background,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
+              <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>Senha</Text>
+              <View style={styles.inputWrap}>
                 <Feather name="lock" size={16} color={colors.gray400} />
                 <TextInput
-                  style={[styles.input, { color: colors.foreground }]}
+                  style={[styles.input, { color: colors.heading }]}
                   value={password}
                   onChangeText={setPassword}
                   placeholder="••••••••"
-                  placeholderTextColor={colors.gray300}
+                  placeholderTextColor={colors.gray400}
                   secureTextEntry={!showPw}
                 />
                 <TouchableOpacity
-                  onPress={() => setShowPw(!showPw)}
+                  onPress={() => setShowPw((current) => !current)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Feather
@@ -201,76 +194,67 @@ export default function AuthScreen() {
               </View>
             </View>
 
-            {mode === "login" && (
-              <TouchableOpacity style={styles.forgotWrap}>
-                <Text style={[styles.forgotText, { color: colors.primary }]}>
-                  Forgot password?
-                </Text>
+            {mode === "login" ? (
+              <TouchableOpacity style={styles.forgotWrap} activeOpacity={0.8}>
+                <Text style={[styles.forgotText, { color: colors.primary }]}>Esqueceu sua senha?</Text>
               </TouchableOpacity>
-            )}
+            ) : null}
 
             <TouchableOpacity
-              style={[styles.submitBtn, { backgroundColor: colors.primary }]}
+              style={[
+                styles.submitBtn,
+                { backgroundColor: colors.primary },
+              ]}
               onPress={handleSubmit}
-              activeOpacity={0.8}
+              activeOpacity={0.9}
               disabled={loading}
             >
               {loading ? (
-                <Feather name="loader" size={20} color="#fff" />
+                <Feather name="loader" size={18} color="#FFFFFF" />
               ) : (
                 <Text style={styles.submitText}>
-                  {mode === "login" ? "Sign In" : "Create account"}
+                  {mode === "login" ? "Continuar" : "Criar conta"}
                 </Text>
               )}
             </TouchableOpacity>
 
             <View style={styles.dividerRow}>
-              <View
-                style={[styles.divider, { backgroundColor: colors.border }]}
-              />
-              <Text style={[styles.dividerText, { color: colors.gray400 }]}>
-                or continue with
-              </Text>
-              <View
-                style={[styles.divider, { backgroundColor: colors.border }]}
-              />
+              <View style={[styles.divider, { backgroundColor: "rgba(28,28,30,0.08)" }]} />
+              <Text style={[styles.dividerText, { color: colors.gray400 }]}>ou continue com</Text>
+              <View style={[styles.divider, { backgroundColor: "rgba(28,28,30,0.08)" }]} />
             </View>
 
             <View style={styles.socialRow}>
-              {["Google", "Apple"].map((provider) => (
+              {[
+                { name: "Google", icon: "google", disabled: false },
+                { name: "Apple", icon: "apple", disabled: true, suffix: " em breve" },
+              ].map((provider) => (
                 <TouchableOpacity
-                  key={provider}
+                  key={provider.name}
                   style={[
                     styles.socialBtn,
-                    {
-                      backgroundColor: colors.background,
-                      borderColor: colors.border,
-                    },
+                    provider.disabled && { opacity: 0.55 },
                   ]}
-                  activeOpacity={0.7}
+                  activeOpacity={0.84}
+                  disabled={provider.disabled}
                 >
-                  <Feather
-                    name={provider === "Apple" ? "smartphone" : "globe"}
-                    size={18}
-                    color={colors.gray600}
-                  />
-                  <Text
-                    style={[styles.socialText, { color: colors.gray700 }]}
-                  >
-                    {provider}
+                  <FontAwesome5 name={provider.icon} size={16} color={colors.gray700} />
+                  <Text style={[styles.socialText, { color: colors.gray700 }]}>
+                    {provider.name}{provider.suffix ?? ""}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          <TouchableOpacity onPress={() => setMode(mode === "login" ? "register" : "login")}>
+          <TouchableOpacity
+            onPress={() => setMode(mode === "login" ? "register" : "login")}
+            activeOpacity={0.8}
+          >
             <Text style={[styles.toggleText, { color: colors.gray500 }]}>
-              {mode === "login"
-                ? "Don't have an account? "
-                : "Already have an account? "}
-              <Text style={[{ color: colors.primary, fontWeight: "600" }]}>
-                {mode === "login" ? "Sign up" : "Sign in"}
+              {mode === "login" ? "Ainda não tem acesso? " : "Já possui uma conta? "}
+              <Text style={[styles.toggleLink, { color: colors.primary }]}>
+                {mode === "login" ? "Criar conta" : "Entrar"}
               </Text>
             </Text>
           </TouchableOpacity>
@@ -289,7 +273,16 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 300,
+    height: 340,
+  },
+  ambientOrb: {
+    position: "absolute",
+    top: 54,
+    right: -26,
+    width: 168,
+    height: 168,
+    borderRadius: 84,
+    backgroundColor: "rgba(94,76,235,0.07)",
   },
   kav: {
     flex: 1,
@@ -298,70 +291,140 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 24,
   },
-  logoWrap: {
+  brandRow: {
+    flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
   },
-  logoIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#5341CD",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
+  brandText: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 2.2,
   },
-  logoText: {
-    fontSize: 32,
-    fontWeight: "800",
-    letterSpacing: -1,
+  brandPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: "rgba(94,76,235,0.08)",
   },
-  logoTagline: {
-    fontSize: 14,
+  brandPillText: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+  heroPanel: {
+    gap: 12,
+    paddingTop: 8,
+  },
+  heroTitle: {
+    fontSize: 38,
+    lineHeight: 42,
+    fontWeight: "700",
+    letterSpacing: -1.5,
+    maxWidth: 280,
+  },
+  heroSubtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    maxWidth: 330,
+  },
+  metricRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4,
+  },
+  metricCard: {
+    flex: 1,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    backgroundColor: "rgba(255,255,255,0.74)",
+    borderWidth: 1,
+    borderColor: "rgba(28,28,30,0.04)",
+  },
+  metricValue: {
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+    color: "#1C1C1E",
+  },
+  metricLabel: {
+    marginTop: 4,
+    fontSize: 11,
+    lineHeight: 14,
+    color: "#6D6D72",
   },
   card: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 24,
-    borderWidth: 0.5,
-    padding: 24,
+    padding: 22,
     gap: 16,
+    borderWidth: 1,
+    borderColor: "rgba(28,28,30,0.05)",
+  },
+  cardShadowIos: {
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+  },
+  cardShadowAndroid: {
+    elevation: 3,
+  },
+  cardShadowWeb: {
+    boxShadow: "0 20px 40px rgba(0,0,0,0.05)",
+  } as any,
+  cardHeader: {
+    gap: 14,
+  },
+  cardEyebrow: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: 6,
+  },
+  cardTitle: {
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: "700",
+    letterSpacing: -0.6,
   },
   modeSwitcher: {
     flexDirection: "row",
-    backgroundColor: "rgba(83,65,205,0.08)",
-    borderRadius: 12,
-    padding: 3,
-    gap: 2,
+    padding: 4,
+    borderRadius: 16,
+    backgroundColor: "rgba(94,76,235,0.08)",
+    gap: 4,
   },
   modeTab: {
     flex: 1,
-    height: 38,
-    borderRadius: 10,
+    height: 40,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   modeTabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
   },
   fieldWrap: {
-    gap: 6,
+    gap: 7,
   },
   fieldLabel: {
     fontSize: 12,
     fontWeight: "600",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.55,
   },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    paddingHorizontal: 14,
+    minHeight: 52,
+    borderRadius: 14,
+    backgroundColor: "#F2F2F7",
+    paddingHorizontal: 16,
     gap: 10,
   },
   input: {
@@ -370,22 +433,24 @@ const styles = StyleSheet.create({
   },
   forgotWrap: {
     alignSelf: "flex-end",
-    marginTop: -8,
+    marginTop: -2,
   },
   forgotText: {
     fontSize: 13,
+    fontWeight: "500",
   },
   submitBtn: {
-    height: 52,
-    borderRadius: 9999,
+    height: 54,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
   },
   submitText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
-    color: "#fff",
+    color: "#FFFFFF",
+    letterSpacing: -0.1,
   },
   dividerRow: {
     flexDirection: "row",
@@ -401,7 +466,7 @@ const styles = StyleSheet.create({
   },
   socialRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: 10,
   },
   socialBtn: {
     flex: 1,
@@ -409,16 +474,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    height: 46,
-    borderRadius: 12,
-    borderWidth: 1,
+    minHeight: 48,
+    borderRadius: 14,
+    backgroundColor: "#F2F2F7",
   },
   socialText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "500",
   },
   toggleText: {
     fontSize: 13,
     textAlign: "center",
+  },
+  toggleLink: {
+    fontWeight: "600",
   },
 });

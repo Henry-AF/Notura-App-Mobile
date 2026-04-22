@@ -1,5 +1,6 @@
 export type ConversationStatus = "completed" | "recording" | "processing" | "failed";
 export type TaskPriority = "high" | "medium" | "low";
+export type ActionItemStatus = "todo" | "in_progress" | "done";
 export type SpeakerColor = string;
 
 export interface Speaker {
@@ -27,10 +28,12 @@ export interface TranscriptSegment {
 export interface ActionItem {
   id: string;
   text: string;
+  description?: string;
   assignee: string;
   assigneeInitials: string;
   assigneeColor: string;
   priority: TaskPriority;
+  status: ActionItemStatus;
   completed: boolean;
   dueDate?: string;
 }
@@ -54,6 +57,7 @@ export interface Conversation {
   subtitle: string;
   date: string;
   dateShort: string;
+  recordedAt?: string;
   duration: string;
   durationSeconds: number;
   status: ConversationStatus;
@@ -83,6 +87,10 @@ export interface Integration {
   description: string;
   connected: boolean;
   color: string;
+}
+
+function minutesAgoIso(minutes: number) {
+  return new Date(Date.now() - minutes * 60 * 1000).toISOString();
 }
 
 export const SPEAKERS: Record<string, Speaker> = {
@@ -127,6 +135,7 @@ export const mockConversations: Conversation[] = [
     subtitle: "Produto · Engenharia · Design",
     date: "21 abr 2026",
     dateShort: "Hoje",
+    recordedAt: minutesAgoIso(30),
     duration: "1h 24m",
     durationSeconds: 5040,
     status: "completed",
@@ -230,6 +239,7 @@ export const mockConversations: Conversation[] = [
         assigneeInitials: "HC",
         assigneeColor: "#5341CD",
         priority: "high",
+        status: "todo",
         completed: false,
         dueDate: "25 abr",
       },
@@ -240,6 +250,7 @@ export const mockConversations: Conversation[] = [
         assigneeInitials: "SK",
         assigneeColor: "#1D9E75",
         priority: "high",
+        status: "in_progress",
         completed: false,
         dueDate: "23 abr",
       },
@@ -250,6 +261,7 @@ export const mockConversations: Conversation[] = [
         assigneeInitials: "PP",
         assigneeColor: "#378ADD",
         priority: "high",
+        status: "todo",
         completed: false,
         dueDate: "22 abr",
       },
@@ -260,6 +272,7 @@ export const mockConversations: Conversation[] = [
         assigneeInitials: "ML",
         assigneeColor: "#EF9F27",
         priority: "medium",
+        status: "done",
         completed: true,
       },
     ],
@@ -330,6 +343,7 @@ export const mockConversations: Conversation[] = [
         assigneeInitials: "PP",
         assigneeColor: "#378ADD",
         priority: "high",
+        status: "done",
         completed: true,
         dueDate: "21 abr",
       },
@@ -340,6 +354,7 @@ export const mockConversations: Conversation[] = [
         assigneeInitials: "HC",
         assigneeColor: "#5341CD",
         priority: "medium",
+        status: "todo",
         completed: false,
         dueDate: "29 abr",
       },
@@ -375,6 +390,7 @@ export const mockConversations: Conversation[] = [
         assigneeInitials: "HC",
         assigneeColor: "#5341CD",
         priority: "high",
+        status: "in_progress",
         completed: false,
         dueDate: "30 abr",
       },

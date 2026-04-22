@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AppNavbar } from "@/components/AppNavbar";
 import { ConversationCard } from "@/components/ConversationCard";
 import { GlassCard } from "@/components/GlassCard";
 import { useApp } from "@/context/AppContext";
@@ -63,13 +64,13 @@ export default function SpacesScreen() {
     return conversations.filter((c) => c.spaceId === selectedSpace.id);
   }, [conversations, selectedSpace]);
 
-  const topPad = Platform.OS === "web" ? 20 : insets.top + 8;
   const bottomPad = Platform.OS === "web" ? 34 + 100 : insets.bottom + 110;
 
   if (selectedSpace) {
     return (
       <View style={styles.root}>
-        <View style={[styles.header, { paddingTop: topPad }]}>
+        <AppNavbar title={selectedSpace.name} />
+        <View style={styles.subHeader}>
           <TouchableOpacity
             style={[styles.backBtn, { backgroundColor: "rgba(175,82,222,0.08)" }]}
             onPress={() => setSelectedSpace(null)}
@@ -108,8 +109,9 @@ export default function SpacesScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: topPad }]}>
-        <Text style={[styles.title, { color: colors.heading }]}>Espaços</Text>
+      <AppNavbar title="Espaços" />
+      <View style={styles.subHeader}>
+        <View style={{ width: 40 }} />
         <TouchableOpacity
           style={[styles.addBtn, { backgroundColor: colors.primary }]}
           onPress={() => setCreateVisible(true)}
@@ -194,8 +196,7 @@ export default function SpacesScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 12 },
-  title: { fontSize: 26, fontWeight: "600", letterSpacing: -0.5 },
+  subHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 10 },
   addBtn: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   backBtn: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   spaceTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },

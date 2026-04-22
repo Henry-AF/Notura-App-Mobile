@@ -1,195 +1,373 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { FlatList, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useMemo } from "react";
+import {
+  FlatList,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Avatar } from "@/components/Avatar";
-import { GlassCard } from "@/components/GlassCard";
-import { SearchBar } from "@/components/SearchBar";
+import { AppNavbar } from "@/components/AppNavbar";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import type { Conversation, ConversationStatus } from "@/lib/mockData";
 
-interface SearchResult {
-  type: "conversation" | "transcript" | "action";
-  id: string;
-  conversationId: string;
-  title: string;
-  excerpt: string;
-  speaker?: string;
-  speakerInitials?: string;
-  speakerColor?: string;
-  date: string;
+const MONTH_INDEX: Record<string, number> = {
+  jan: 0,
+  fev: 1,
+  mar: 2,
+  abr: 3,
+  mai: 4,
+  jun: 5,
+  jul: 6,
+  ago: 7,
+  set: 8,
+  out: 9,
+  nov: 10,
+  dez: 11,
+};
+
+function parseMeetingDate(dateLabel: string) {
+  const normalized = dateLabel
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const match = normalized.match(/(\d{1,2})\s+([a-z]{3})\s+(\d{4})/);
+
+  if (!match) return 0;
+
+  const day = Number(match[1]);
+  const month = MONTH_INDEX[match[2]];
+  const year = Number(match[3]);
+
+  if (Number.isNaN(day) || month === undefined || Number.isNaN(year)) return 0;
+
+  return new Date(year, month, day).getTime();
 }
 
-const RECENT_SEARCHES = ["roadmap", "Series B", "lançamento mobile", "Acme Corp"];
+function statusMeta(status: ConversationStatus, colors: ReturnType<typeof useColors>) {
+  switch (status) {
+    case "completed":
+      return {
+        label: "Completado",
+        backgroundColor: "rgba(52,199,89,0.12)",
+        textColor: colors.success,
+      };
+    case "processing":
+      return {
+        label: "Processando",
+        backgroundColor: "rgba(255,149,0,0.12)",
+        textColor: colors.warning,
+      };
+    case "failed":
+      return {
+        label: "Falhou",
+        backgroundColor: "rgba(255,59,48,0.12)",
+        textColor: colors.error,
+      };
+    case "recording":
+      return {
+        label: "Gravando",
+        backgroundColor: "rgba(255,59,48,0.12)",
+        textColor: colors.error,
+      };
+  }
+}
 
-const SEARCH_TYPES = [
-  { icon: "file-text", label: "Transcrições", sub: "Buscar dentro do texto das conversas" },
-  { icon: "check-square", label: "Itens de ação", sub: "Encontrar tarefas das reuniões" },
-  { icon: "bookmark", label: "Destaques", sub: "Ver momentos salvos" },
-];
+function MeetingCard({ conversation }: { conversation: Conversation }) {
+  const colors = useColors();
+  const router = useRouter();
+  const status = statusMeta(conversation.status, colors);
 
-export default function SearchScreen() {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.92}
+      onPress={() => router.push(`/conversation/${conversation.id}`)}
+      style={styles.cardTouchable}
+    >
+      <View
+        style={[
+          styles.card,
+          Platform.OS === "ios" && styles.cardShadowIos,
+          Platform.OS === "android" && styles.cardShadowAndroid,
+          Platform.OS === "web" && styles.cardShadowWeb,
+        ]}
+      >
+        <View style={styles.cardContent}>
+          <View style={styles.cardHeader}>
+            <View
+              style={[
+                styles.statusPill,
+                { backgroundColor: status.backgroundColor },
+              ]}
+            >
+              <View
+                style={[
+                  styles.statusDot,
+                  { backgroundColor: status.textColor },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.statusText,
+                  { color: status.textColor },
+                ]}
+              >
+                {status.label}
+              </Text>
+            </View>
+
+            <Feather name="chevron-right" size={18} color="rgba(28,28,30,0.26)" />
+          </View>
+
+          <Text style={[styles.cardTitle, { color: colors.heading }]}>
+            {conversation.title}
+          </Text>
+
+          <View style={styles.cardFooter}>
+            <View style={styles.metaInline}>
+              <Feather name="calendar" size={12} color="#6D6D72" />
+              <Text style={styles.metaText}>Gravada em {conversation.date}</Text>
+            </View>
+
+            <View style={styles.metaInline}>
+              <Feather name="clock" size={12} color="#6D6D72" />
+              <Text style={styles.metaText}>{conversation.duration}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+export default function MeetingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { conversations } = useApp();
-  const [query, setQuery] = useState("");
 
-  const results = useMemo<SearchResult[]>(() => {
-    if (query.trim().length < 2) return [];
-    const q = query.toLowerCase();
-    const out: SearchResult[] = [];
-    for (const conv of conversations) {
-      if (conv.title.toLowerCase().includes(q) || conv.subtitle.toLowerCase().includes(q)) {
-        out.push({ type: "conversation", id: `conv-${conv.id}`, conversationId: conv.id, title: conv.title, excerpt: conv.summary?.slice(0, 110) + "..." || conv.subtitle, date: conv.dateShort });
-      }
-      for (const seg of conv.transcript ?? []) {
-        if (seg.text.toLowerCase().includes(q)) {
-          out.push({ type: "transcript", id: `seg-${seg.id}`, conversationId: conv.id, title: conv.title, excerpt: seg.text, speaker: seg.speakerName, speakerInitials: seg.speakerInitials, speakerColor: seg.speakerColor, date: seg.timeLabel });
-        }
-      }
-      for (const action of conv.actionItems ?? []) {
-        if (action.text.toLowerCase().includes(q)) {
-          out.push({ type: "action", id: `action-${action.id}`, conversationId: conv.id, title: action.text, excerpt: `De: ${conv.title}`, speaker: action.assignee, speakerInitials: action.assigneeInitials, speakerColor: action.assigneeColor, date: action.dueDate ?? conv.dateShort });
-        }
-      }
-    }
-    return out.slice(0, 20);
-  }, [query, conversations]);
+  const sortedMeetings = useMemo(
+    () =>
+      conversations
+        .slice()
+        .sort((left, right) => parseMeetingDate(right.date) - parseMeetingDate(left.date)),
+    [conversations]
+  );
 
-  const topPad = Platform.OS === "web" ? 20 : insets.top + 8;
+  const statusSummary = useMemo(
+    () => ({
+      completed: sortedMeetings.filter((meeting) => meeting.status === "completed").length,
+      processing: sortedMeetings.filter((meeting) => meeting.status === "processing").length,
+      failed: sortedMeetings.filter((meeting) => meeting.status === "failed").length,
+    }),
+    [sortedMeetings]
+  );
+
   const bottomPad = Platform.OS === "web" ? 34 + 100 : insets.bottom + 110;
-
-  const typeConfig: Record<string, { icon: string; label: string }> = {
-    conversation: { icon: "calendar", label: "Reunião" },
-    transcript: { icon: "file-text", label: "Transcrição" },
-    action: { icon: "check-square", label: "Ação" },
-  };
 
   return (
     <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: topPad }]}>
-        <Text style={[styles.title, { color: colors.heading }]}>Buscar</Text>
-        <SearchBar value={query} onChangeText={setQuery} placeholder="Conversas, transcrições, ações..." />
-      </View>
+      <AppNavbar title="Reuniões" />
 
-      {query.length < 2 ? (
-        <View style={styles.emptyState}>
-          <Text style={[styles.sectionLabel, { color: colors.bodyText }]}>Buscas recentes</Text>
-          <View style={styles.recentChips}>
-            {RECENT_SEARCHES.map((s) => (
-              <TouchableOpacity
-                key={s}
-                style={[styles.recentChip, { backgroundColor: "rgba(175,82,222,0.08)", borderColor: "rgba(175,82,222,0.15)", borderWidth: 1 }]}
-                onPress={() => setQuery(s)}
-                activeOpacity={0.75}
-              >
-                <Feather name="clock" size={12} color={colors.primary} />
-                <Text style={[styles.recentText, { color: colors.heading }]}>{s}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      <FlatList
+        data={sortedMeetings}
+        keyExtractor={(conversation) => conversation.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.list, { paddingBottom: bottomPad }]}
+        ListHeaderComponent={
+          <View style={styles.hero}>
+            <Text style={styles.eyebrow}>Biblioteca Privada</Text>
+            <Text style={[styles.heroTitle, { color: colors.heading }]}>
+              Reuniões gravadas.
+            </Text>
+            <Text style={[styles.heroSubtitle, { color: colors.bodyText }]}>
+              {sortedMeetings.length} reuniões ordenadas da mais recente para a mais antiga.
+            </Text>
 
-          <Text style={[styles.sectionLabel, { color: colors.bodyText }]}>Explorar por tipo</Text>
-          {SEARCH_TYPES.map((item) => (
-            <GlassCard key={item.label} noPad>
-              <View style={styles.typeRow}>
-                <View style={[styles.typeIconWrap, { backgroundColor: "rgba(175,82,222,0.10)" }]}>
-                  <Feather name={item.icon as any} size={16} color={colors.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.typeLabel, { color: colors.heading }]}>{item.label}</Text>
-                  <Text style={[styles.typeSub, { color: colors.bodyText }]}>{item.sub}</Text>
-                </View>
-                <Feather name="chevron-right" size={16} color={colors.gray400} />
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryValue}>{statusSummary.completed}</Text>
+                <Text style={styles.summaryLabel}>Completadas</Text>
               </View>
-            </GlassCard>
-          ))}
-        </View>
-      ) : (
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={[styles.resultList, { paddingBottom: bottomPad }]}
-          ListHeaderComponent={
-            results.length > 0 ? (
-              <Text style={[styles.resultCount, { color: colors.bodyText }]}>
-                {results.length} resultado{results.length !== 1 ? "s" : ""} para "{query}"
-              </Text>
-            ) : null
-          }
-          renderItem={({ item }) => {
-            const tc = typeConfig[item.type];
-            return (
-              <GlassCard noPad style={{ marginBottom: 10 }}>
-                <TouchableOpacity
-                  style={styles.resultCardInner}
-                  onPress={() => router.push(`/conversation/${item.conversationId}`)}
-                  activeOpacity={0.9}
-                >
-                  <View style={styles.resultHeader}>
-                    <View style={[styles.resultTypeIcon, { backgroundColor: "rgba(175,82,222,0.10)" }]}>
-                      <Feather name={tc.icon as any} size={12} color={colors.primary} />
-                    </View>
-                    <Text style={[styles.resultType, { color: colors.primary }]}>{tc.label}</Text>
-                    <Text style={[styles.resultDate, { color: colors.gray400 }]}>{item.date}</Text>
-                  </View>
-                  <Text style={[styles.resultTitle, { color: colors.heading }]}>{item.title}</Text>
-                  {item.speakerInitials && (
-                    <View style={styles.resultSpeaker}>
-                      <Avatar initials={item.speakerInitials} color={item.speakerColor!} size={16} />
-                      <Text style={[styles.resultSpeakerName, { color: colors.bodyText }]}>{item.speaker}</Text>
-                    </View>
-                  )}
-                  <Text style={[styles.resultExcerpt, { color: colors.bodyText }]} numberOfLines={2}>{item.excerpt}</Text>
-                </TouchableOpacity>
-              </GlassCard>
-            );
-          }}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <View style={[styles.emptyIcon, { backgroundColor: "rgba(175,82,222,0.08)" }]}>
-                <Feather name="search" size={28} color={colors.gray400} />
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryValue}>{statusSummary.processing}</Text>
+                <Text style={styles.summaryLabel}>Processando</Text>
               </View>
-              <Text style={[styles.emptyTitle, { color: colors.heading }]}>Nenhum resultado</Text>
-              <Text style={[styles.emptySub, { color: colors.bodyText }]}>Tente uma palavra-chave diferente</Text>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryValue}>{statusSummary.failed}</Text>
+                <Text style={styles.summaryLabel}>Falharam</Text>
+              </View>
             </View>
-          }
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+          </View>
+        }
+        renderItem={({ item: conversation }) => <MeetingCard conversation={conversation} />}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <View style={styles.emptyIconWrap}>
+              <Feather name="list" size={24} color="#5E4CEB" />
+            </View>
+            <Text style={[styles.emptyTitle, { color: colors.heading }]}>
+              Nenhuma reunião ainda
+            </Text>
+            <Text style={[styles.emptySubtitle, { color: colors.bodyText }]}>
+              Quando suas gravações aparecerem, elas ficarão listadas aqui por data.
+            </Text>
+          </View>
+        }
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingBottom: 12, gap: 12 },
-  title: { fontSize: 26, fontWeight: "600", letterSpacing: -0.5 },
-  emptyState: { paddingHorizontal: 20, gap: 12 },
-  sectionLabel: { fontSize: 13, fontWeight: "500", marginTop: 4 },
-  recentChips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  recentChip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9999 },
-  recentText: { fontSize: 13 },
-  typeRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
-  typeIconWrap: { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  typeLabel: { fontSize: 14, fontWeight: "500" },
-  typeSub: { fontSize: 12, marginTop: 1 },
-  resultList: { paddingHorizontal: 20, paddingTop: 8, gap: 0 },
-  resultCount: { fontSize: 12, marginBottom: 10 },
-  resultCardInner: { padding: 14, gap: 7 },
-  resultHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
-  resultTypeIcon: { width: 20, height: 20, borderRadius: 6, alignItems: "center", justifyContent: "center" },
-  resultType: { fontSize: 11, fontWeight: "600", flex: 1 },
-  resultDate: { fontSize: 11 },
-  resultTitle: { fontSize: 14, fontWeight: "600" },
-  resultSpeaker: { flexDirection: "row", alignItems: "center", gap: 5 },
-  resultSpeakerName: { fontSize: 11 },
-  resultExcerpt: { fontSize: 13, lineHeight: 19 },
-  empty: { alignItems: "center", paddingTop: 60, gap: 10 },
-  emptyIcon: { width: 72, height: 72, borderRadius: 22, alignItems: "center", justifyContent: "center", marginBottom: 4 },
-  emptyTitle: { fontSize: 17, fontWeight: "600" },
-  emptySub: { fontSize: 14, textAlign: "center" },
+  list: { paddingHorizontal: 20, paddingTop: 8 },
+  hero: { marginBottom: 22, gap: 8 },
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    color: "rgba(94,76,235,0.78)",
+  },
+  heroTitle: {
+    fontSize: 34,
+    lineHeight: 39,
+    fontWeight: "700",
+    letterSpacing: -1.2,
+  },
+  heroSubtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    maxWidth: 320,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: "#F7F7FB",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: "rgba(28,28,30,0.04)",
+  },
+  summaryValue: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+    color: "#1C1C1E",
+  },
+  summaryLabel: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 16,
+    color: "#6D6D72",
+  },
+  cardTouchable: {
+    marginBottom: 12,
+  },
+  card: {
+    position: "relative",
+    overflow: "hidden",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: "rgba(28,28,30,0.06)",
+  },
+  cardShadowIos: {
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+  },
+  cardShadowAndroid: {
+    elevation: 3,
+  },
+  cardShadowWeb: {
+    boxShadow: "0 20px 40px rgba(0,0,0,0.05)",
+  } as any,
+  cardContent: {
+    paddingHorizontal: 22,
+    paddingVertical: 20,
+    gap: 10,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+  cardTitle: {
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: "600",
+    letterSpacing: -0.45,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 4,
+  },
+  metaInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  metaText: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: "#6D6D72",
+  },
+  empty: {
+    alignItems: "center",
+    paddingTop: 80,
+    gap: 10,
+  },
+  emptyIconWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    backgroundColor: "rgba(94,76,235,0.10)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    letterSpacing: -0.2,
+  },
+  emptySubtitle: {
+    maxWidth: 280,
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 20,
+  },
 });

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { FlatList, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AppNavbar } from "@/components/AppNavbar";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/Badge";
 import { GlassBackground } from "@/components/GlassBackground";
@@ -22,22 +23,12 @@ export default function HighlightsScreen() {
 
   const filtered = activeTag === "Todos" ? highlights : highlights.filter((h) => h.tag === activeTag);
 
-  const topPad = Platform.OS === "web" ? 20 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 24;
 
   return (
     <GlassBackground>
       <View style={styles.root}>
-        <View style={[styles.header, { paddingTop: topPad }]}>
-          <TouchableOpacity
-            style={[styles.backBtn, { backgroundColor: "rgba(175,82,222,0.08)" }]}
-            onPress={() => router.back()}
-          >
-            <Feather name="arrow-left" size={18} color={colors.heading} />
-          </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.heading }]}>Destaques</Text>
-          <View style={{ width: 40 }} />
-        </View>
+        <AppNavbar title="Destaques" />
 
         <FlatList
           data={filtered}
@@ -108,9 +99,6 @@ export default function HighlightsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 12 },
-  backBtn: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 20, fontWeight: "700" },
   list: { paddingHorizontal: 20, paddingTop: 4 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
   tagChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9999 },
