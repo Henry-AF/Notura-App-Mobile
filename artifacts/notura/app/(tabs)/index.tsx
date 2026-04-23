@@ -19,8 +19,8 @@ import { useColors } from "@/hooks/useColors";
 import { fetchHomeOverview } from "./home-api";
 
 const PLAN_LIMITS = {
-  free: 5,
-  pro: null,
+  free: 3,
+  pro: 30,
   platinum: null,
 } as const;
 

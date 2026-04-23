@@ -23,4 +23,12 @@ test("home hero card should show monthly plan usage instead of generic task prog
     !homeScreenSource.includes("Seus projetos estão indo bem"),
     "Expected old generic project status copy to be removed"
   );
+  assert.ok(
+    homeScreenSource.includes("free: 3"),
+    "Expected home plan limits to cap the free plan at 3 meetings"
+  );
+  assert.ok(
+    homeScreenSource.includes("pro: 30"),
+    "Expected home plan limits to cap the pro plan at 30 meetings"
+  );
 });
