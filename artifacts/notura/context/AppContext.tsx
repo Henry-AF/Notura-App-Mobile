@@ -1,10 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { useQuery } from "@tanstack/react-query";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+
+import { api } from "@/lib/api-client";
+import { useSession } from "@/lib/hooks/useSession";
+import { getSupabaseAuth } from "@/lib/supabase";
 import {
   mockConversations,
   mockHighlights,
@@ -27,6 +27,7 @@ interface AppContextType {
   removeHighlight: (id: string) => void;
   toggleIntegration: (id: string) => void;
   isAuthenticated: boolean;
+  isSessionReady: boolean;
   currentUser: {
     name: string;
     email: string;
@@ -64,40 +65,102 @@ function normalizeConversations(conversations: Conversation[]) {
   }));
 }
 
+function normalizePlan(plan: string | undefined): "free" | "pro" | "platinum" {
+  if (plan === "pro" || plan === "platinum") {
+    return plan;
+  }
+  return "free";
+}
+
+function deriveName(profileName: string | null | undefined, email: string) {
+  if (typeof profileName === "string" && profileName.trim().length > 0) {
+    return profileName.trim();
+  }
+
+  const localPart = email.split("@")[0];
+  if (localPart.length > 0) {
+    return localPart;
+  }
+
+  return "Notura User";
+}
+
+function buildInitials(name: string) {
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter((part) => part.length > 0);
+
+  if (parts.length === 0) {
+    return "NU";
+  }
+
+  const firstLetter = parts[0].slice(0, 1).toUpperCase();
+  const secondSource = parts.length > 1 ? parts[1] : parts[0];
+  const secondLetter = secondSource.slice(0, 1).toUpperCase();
+  return `${firstLetter}${secondLetter}`;
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [conversations, setConversations] = useState<Conversation[]>(normalizeConversations(mockConversations));
+  const { session, isAuthenticated, isReady: isSessionReady } = useSession();
+
+  const [conversations, setConversations] = useState<Conversation[]>(
+    normalizeConversations(mockConversations),
+  );
   const [highlights, setHighlights] = useState<Highlight[]>(mockHighlights);
   const [integrations, setIntegrations] = useState<Integration[]>(mockIntegrations);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pricingVisible, setPricingVisible] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [currentUser] = useState({
-    name: "Henry Costa",
-    email: "henry@notura.ai",
-    initials: "HC",
-    avatarColor: "#5341CD",
-    avatarUrl: undefined,
-    plan: "free" as const,
+
+  const { data: meResponse } = useQuery({
+    queryKey: ["user-me", session ? session.user.id : "anonymous"],
+    queryFn: () => api.user.me(),
+    enabled: isAuthenticated,
+    staleTime: 60_000,
   });
 
+  const currentUser = useMemo(() => {
+    const profile = meResponse ? meResponse.user : null;
+    const email =
+      profile && profile.email.length > 0
+        ? profile.email
+        : typeof session?.user.email === "string"
+          ? session.user.email
+          : "";
+    const name = deriveName(profile?.name, email);
+
+    return {
+      name,
+      email,
+      initials: buildInitials(name),
+      avatarColor: "#5341CD",
+      avatarUrl: undefined,
+      plan: normalizePlan(profile?.plan),
+    };
+  }, [meResponse, session]);
+
   useEffect(() => {
-    loadData();
+    void loadData();
   }, []);
 
   async function loadData() {
     try {
       const stored = await AsyncStorage.getItem("conversations_v2");
-      if (stored) setConversations(normalizeConversations(JSON.parse(stored)));
-      
-      const auth = await AsyncStorage.getItem("isAuthenticated");
-      if (auth === "true") setIsAuthenticated(true);
-    } catch {}
+      if (stored) {
+        const parsed = JSON.parse(stored) as Conversation[];
+        setConversations(normalizeConversations(parsed));
+      }
+    } catch (error) {
+      console.warn("Falha ao carregar conversas persistidas.", error);
+    }
   }
 
   async function persistConversations(nextConversations: Conversation[]) {
     try {
       await AsyncStorage.setItem("conversations_v2", JSON.stringify(nextConversations));
-    } catch {}
+    } catch (error) {
+      console.warn("Falha ao persistir conversas.", error);
+    }
   }
 
   async function addConversation(c: Conversation) {
@@ -123,14 +186,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                             ? updates.status === "done"
                             : updates.completed ?? action.completed,
                       }
-                    : action
+                    : action,
                 ),
               }
-            : conversation
-        )
+            : conversation,
+        ),
       );
 
-      persistConversations(next);
+      void persistConversations(next);
       return next;
     });
   }
@@ -144,11 +207,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 ...conversation,
                 actionItems: (conversation.actionItems ?? []).filter((action) => action.id !== actionId),
               }
-            : conversation
-        )
+            : conversation,
+        ),
       );
 
-      persistConversations(next);
+      void persistConversations(next);
       return next;
     });
   }
@@ -163,18 +226,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   function toggleIntegration(id: string) {
     setIntegrations((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, connected: !i.connected } : i))
+      prev.map((integration) =>
+        integration.id === id
+          ? { ...integration, connected: !integration.connected }
+          : integration,
+      ),
     );
   }
 
-  function login(email: string) {
-    setIsAuthenticated(true);
-    AsyncStorage.setItem("isAuthenticated", "true").catch(() => {});
+  function login(_email: string) {
+    console.warn("login(email) legado acionado. Use o fluxo real na tela /auth.");
   }
 
   function logout() {
-    setIsAuthenticated(false);
-    AsyncStorage.setItem("isAuthenticated", "false").catch(() => {});
+    void getSupabaseAuth().signOut();
   }
 
   return (
@@ -190,6 +255,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         removeHighlight,
         toggleIntegration,
         isAuthenticated,
+        isSessionReady,
         currentUser,
         login,
         logout,

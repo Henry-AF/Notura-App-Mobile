@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Platform,
   ScrollView,
@@ -15,7 +16,7 @@ import { CircularProgress } from "@/components/CircularProgress";
 import { HomeRecentMeetingCard } from "@/components/HomeRecentMeetingCard";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import type { Conversation } from "@/lib/mockData";
+import { fetchHomeOverview } from "./home-api";
 
 const PLAN_LIMITS = {
   free: 5,
@@ -72,7 +73,17 @@ function formatPlanLabel(plan: "free" | "pro" | "platinum") {
   return plan.toUpperCase();
 }
 
-function getConversationSortTime(conversation: Conversation) {
+interface HomeConversation {
+  id: string;
+  title: string;
+  status: "completed" | "processing" | "failed";
+  date: string;
+  dateShort: string;
+  recordedAt: string;
+  duration: string;
+}
+
+function getConversationSortTime(conversation: HomeConversation) {
   if (conversation.recordedAt) {
     const timestamp = new Date(conversation.recordedAt).getTime();
     if (!Number.isNaN(timestamp)) return timestamp;
@@ -102,11 +113,64 @@ function formatRelativeRecordedAt(recordedAt?: string) {
   return "Hoje";
 }
 
+function isSameDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function toDateShort(createdAt: string) {
+  const created = new Date(createdAt);
+  if (Number.isNaN(created.getTime())) {
+    return "Hoje";
+  }
+
+  if (isSameDay(created, new Date())) {
+    return "Hoje";
+  }
+
+  return created.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+function toDateLabel(createdAt: string) {
+  const created = new Date(createdAt);
+  if (Number.isNaN(created.getTime())) {
+    return "";
+  }
+
+  return created.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { conversations, currentUser } = useApp();
+  const { currentUser } = useApp();
+  const homeOverviewQuery = useQuery({
+    queryKey: ["home-overview"],
+    queryFn: () => fetchHomeOverview(),
+  });
+
+  const conversations: HomeConversation[] = (homeOverviewQuery.data?.recentMeetings ?? []).map(
+    (meeting) => ({
+      id: meeting.id,
+      title: meeting.title,
+      status: meeting.status,
+      date: toDateLabel(meeting.createdAt),
+      dateShort: toDateShort(meeting.createdAt),
+      recordedAt: meeting.createdAt,
+      duration: meeting.duration,
+    }),
+  );
 
   const bottomPad = Platform.OS === "web" ? 34 + 100 : insets.bottom + 110;
 
@@ -118,16 +182,25 @@ export default function HomeScreen() {
     )
     .sort((left, right) => getConversationSortTime(right) - getConversationSortTime(left))
     .slice(0, 3);
-  const firstName = currentUser.name.trim().split(/\s+/)[0] || currentUser.name;
+  const firstNameBase =
+    homeOverviewQuery.data && homeOverviewQuery.data.userName.trim().length > 0
+      ? homeOverviewQuery.data.userName
+      : currentUser.name;
+  const firstName = firstNameBase.trim().split(/\s+/)[0] || firstNameBase;
   const greeting = saudacao();
-  const meetingsProcessedToday = conversations.filter(
-    (conversation) => conversation.dateShort.trim().toLowerCase() === "hoje"
-  ).length;
+  const meetingsProcessedToday =
+    homeOverviewQuery.data?.todayCount ??
+    conversations.filter(
+      (conversation) => conversation.dateShort.trim().toLowerCase() === "hoje",
+    ).length;
   const currentMonthKey = `${new Date().getFullYear()}-${new Date().getMonth()}`;
-  const meetingsThisMonth = conversations.filter((conversation) => {
-    return parseConversationMonthKey(conversation.date, conversation.dateShort) === currentMonthKey;
-  }).length;
-  const currentPlanLimit = PLAN_LIMITS[currentUser.plan];
+  const meetingsThisMonth =
+    homeOverviewQuery.data?.meetingsThisMonth ??
+    conversations.filter((conversation) => {
+      return parseConversationMonthKey(conversation.date, conversation.dateShort) === currentMonthKey;
+    }).length;
+  const currentPlan = homeOverviewQuery.data?.plan ?? currentUser.plan;
+  const currentPlanLimit = homeOverviewQuery.data?.monthlyLimit ?? PLAN_LIMITS[currentUser.plan];
   const planUsageProgress = currentPlanLimit
     ? Math.min(Math.round((meetingsThisMonth / currentPlanLimit) * 100), 100)
     : Math.min(Math.max(meetingsThisMonth * 8, 12), 100);
@@ -168,7 +241,7 @@ export default function HomeScreen() {
             <Text style={styles.heroPlanLabel}>PLANO</Text>
             <View style={[styles.heroPlanPill, { backgroundColor: "rgba(94,76,235,0.10)" }]}>
               <Text style={[styles.heroPlanPillText, { color: colors.primary }]}>
-                {formatPlanLabel(currentUser.plan)}
+                {formatPlanLabel(currentPlan)}
               </Text>
             </View>
           </View>
@@ -211,7 +284,19 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.recentMeetingsList}>
-        {recentCompletedMeetingsToday.length > 0 ? (
+        {homeOverviewQuery.isPending ? (
+          <View style={[styles.emptyRecentState, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.emptyRecentStateText, { color: colors.bodyText }]}>
+              Carregando reuniões...
+            </Text>
+          </View>
+        ) : homeOverviewQuery.isError ? (
+          <View style={[styles.emptyRecentState, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.emptyRecentStateText, { color: colors.bodyText }]}>
+              Nao foi possivel carregar suas reuniões agora.
+            </Text>
+          </View>
+        ) : recentCompletedMeetingsToday.length > 0 ? (
           recentCompletedMeetingsToday.map((conversation) => (
             <HomeRecentMeetingCard
               key={conversation.id}

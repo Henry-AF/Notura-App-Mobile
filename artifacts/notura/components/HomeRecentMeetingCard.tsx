@@ -5,14 +5,26 @@ import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native
 
 import { Badge } from "@/components/Badge";
 import { useColors } from "@/hooks/useColors";
-import type { Conversation, ConversationStatus } from "@/lib/mockData";
+
+export type HomeRecentMeetingStatus =
+  | "completed"
+  | "processing"
+  | "recording"
+  | "failed";
+
+export interface HomeRecentMeetingCardItem {
+  id: string;
+  title: string;
+  status: HomeRecentMeetingStatus;
+  duration: string;
+}
 
 interface HomeRecentMeetingCardProps {
-  conversation: Conversation;
+  conversation: HomeRecentMeetingCardItem;
   relativeRecordedAt: string;
 }
 
-function statusVariant(status: ConversationStatus) {
+function statusVariant(status: HomeRecentMeetingStatus) {
   switch (status) {
     case "completed":
       return "success";
@@ -24,7 +36,7 @@ function statusVariant(status: ConversationStatus) {
   }
 }
 
-function statusLabel(status: ConversationStatus) {
+function statusLabel(status: HomeRecentMeetingStatus) {
   switch (status) {
     case "completed":
       return "Concluída";

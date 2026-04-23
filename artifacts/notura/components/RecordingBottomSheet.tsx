@@ -1,7 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useEffect, useRef } from "react";
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Animated,
   PanResponder,
   Platform,
@@ -14,20 +17,31 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useShallow } from "zustand/react/shallow";
 
+import { processLocalRecording } from "@/app/record-api";
 import { WaveformBars } from "@/components/WaveformBars";
-import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import type { Conversation } from "@/lib/mockData";
+import { useRecording } from "@/lib/hooks/useRecording";
+import {
+  requestLocalNotificationPermissions,
+  scheduleLocalNotification,
+} from "@/lib/notifications";
+import { deleteLocalRecordingFile } from "@/lib/recording-files";
 import { formatRecordingTimer, useRecordingStore } from "@/stores/useRecordingStore";
 
 export function RecordingBottomSheet() {
   const colors = useColors();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { height: viewportHeight } = useWindowDimensions();
   const translateY = useRef(new Animated.Value(520)).current;
   const dragDismissThreshold = 120;
   const dragExpandThreshold = 80;
-  const { addConversation } = useApp();
+  const [completedRecording, setCompletedRecording] = useState<{
+    localUri: string;
+    elapsedSeconds: number;
+  } | null>(null);
+  const [isProcessingMeeting, setIsProcessingMeeting] = useState(false);
+  const { start, pause, resume, stop } = useRecording();
   const {
     sheetState,
     status,
@@ -52,13 +66,13 @@ export function RecordingBottomSheet() {
     stopRecordingSession: state.stopRecordingSession,
   })));
   const isHidden = sheetState === "hidden";
-  const isPartial = sheetState === "partial";
   const isExpanded = sheetState === "expanded";
   const closedOffset = 520;
   const partialOffset = 0;
   const expandedOffset = -Math.max(120, insets.top + 28);
   const partialHeight = Math.min(viewportHeight * 0.78, viewportHeight - insets.top - 92);
   const expandedHeight = viewportHeight - insets.top - 12;
+  const hasCompletedRecording = completedRecording !== null;
 
   function getSheetOffset(nextState: typeof sheetState) {
     if (nextState === "expanded") return expandedOffset;
@@ -75,6 +89,10 @@ export function RecordingBottomSheet() {
       mass: 0.9,
     }).start();
   }, [sheetState, translateY, closedOffset, expandedOffset, partialOffset]);
+
+  useEffect(() => {
+    void requestLocalNotificationPermissions();
+  }, []);
 
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: (_, gestureState) =>
@@ -113,46 +131,122 @@ export function RecordingBottomSheet() {
     },
   });
 
-  function handleStart() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    startRecordingSession();
+  async function handleStart() {
+    if (isProcessingMeeting) return;
+
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      await start();
+      setCompletedRecording(null);
+      startRecordingSession();
+    } catch (error) {
+      Alert.alert(
+        "Não foi possível iniciar a gravação",
+        "Verifique a permissão de microfone e tente novamente.",
+      );
+    }
   }
 
-  function handleTogglePause() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (status === "paused") {
-      resumeRecordingSession();
-      return;
-    }
+  async function handleTogglePause() {
+    if (isProcessingMeeting) return;
 
-    pauseRecordingSession();
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (status === "paused") {
+        resume();
+        resumeRecordingSession();
+        return;
+      }
+
+      pause();
+      pauseRecordingSession();
+    } catch {
+      Alert.alert("Não foi possível atualizar a gravação", "Tente novamente em alguns segundos.");
+    }
   }
 
   function handleClose() {
     closeRecordingSheet();
   }
 
-  function handleStop() {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const snapshot = stopRecordingSession();
-    const duration = formatRecordingTimer(snapshot.elapsedSeconds);
-    const conversation: Conversation = {
-      id: Date.now().toString(),
-      title: "Nova Gravação",
-      subtitle: "Recém gravado",
-      date: new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" }),
-      dateShort: "Agora mesmo",
-      recordedAt: new Date().toISOString(),
-      duration,
-      durationSeconds: snapshot.elapsedSeconds,
-      status: "processing",
-      speakers: [],
-      transcript: [],
-      actionItems: [],
-      highlights: [],
-    };
+  async function handleStop() {
+    if (isProcessingMeeting) return;
 
-    addConversation(conversation);
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const finishedRecording = await stop();
+      const snapshot = stopRecordingSession();
+      setCompletedRecording({
+        localUri: finishedRecording.uri,
+        elapsedSeconds: snapshot.elapsedSeconds,
+      });
+      openRecordingSheet();
+      await scheduleLocalNotification({
+        title: "Gravação finalizada",
+        body: "Você pode processar a reunião ou descartar o áudio.",
+      });
+    } catch {
+      Alert.alert(
+        "Não foi possível finalizar a gravação",
+        "O áudio local não foi salvo corretamente. Tente novamente.",
+      );
+    }
+  }
+
+  async function discardLocalRecording() {
+    if (!completedRecording) return;
+
+    await deleteLocalRecordingFile(completedRecording.localUri);
+    setCompletedRecording(null);
+  }
+
+  function handleDiscardRecording() {
+    if (!completedRecording) return;
+
+    Alert.alert("Descartar gravação", "Essa ação remove o áudio local gravado.", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Descartar",
+        style: "destructive",
+        onPress: () => {
+          void discardLocalRecording();
+        },
+      },
+    ]);
+  }
+
+  async function handleProcessRecording() {
+    if (!completedRecording || isProcessingMeeting) return;
+
+    try {
+      setIsProcessingMeeting(true);
+      const now = new Date();
+      const meetingDate = now.toISOString().slice(0, 10);
+
+      const result = await processLocalRecording({
+        localUri: completedRecording.localUri,
+        clientName: "Reunião gravada no app",
+        meetingDate,
+      });
+
+      await deleteLocalRecordingFile(completedRecording.localUri);
+      setCompletedRecording(null);
+      closeRecordingSheet();
+
+      await scheduleLocalNotification({
+        title: "Processamento iniciado",
+        body: "Sua reunião está sendo processada pela IA.",
+      });
+
+      router.push(`/conversation/${result.meetingId}`);
+    } catch {
+      Alert.alert(
+        "Falha ao processar reunião",
+        "Não foi possível enviar o áudio agora. Verifique sua conexão e tente novamente.",
+      );
+    } finally {
+      setIsProcessingMeeting(false);
+    }
   }
 
   const isSessionActive = status !== "idle";
@@ -192,7 +286,11 @@ export function RecordingBottomSheet() {
             <View style={styles.headerCopy}>
               <Text style={[styles.eyebrow, { color: colors.primary }]}>Gravação</Text>
               <Text style={[styles.title, { color: colors.heading }]}>
-                {isSessionActive ? "Sessão em andamento" : "Pronto para gravar"}
+                {hasCompletedRecording
+                  ? "Gravação finalizada"
+                  : isSessionActive
+                    ? "Sessão em andamento"
+                    : "Pronto para gravar"}
               </Text>
             </View>
 
@@ -206,7 +304,9 @@ export function RecordingBottomSheet() {
           </View>
 
           <View style={styles.timerBlock}>
-            <Text style={[styles.timer, { color: colors.heading }]}>{formatRecordingTimer(elapsedSeconds)}</Text>
+            <Text style={[styles.timer, { color: colors.heading }]}>
+              {formatRecordingTimer(completedRecording?.elapsedSeconds ?? elapsedSeconds)}
+            </Text>
             {status === "recording" ? (
               <View style={styles.liveRow}>
                 <View style={styles.liveDot} />
@@ -216,6 +316,11 @@ export function RecordingBottomSheet() {
               <View style={styles.liveRow}>
                 <Feather name="pause-circle" size={14} color={colors.primary} />
                 <Text style={[styles.pausedLabel, { color: colors.primary }]}>PAUSADA</Text>
+              </View>
+            ) : hasCompletedRecording ? (
+              <View style={styles.liveRow}>
+                <Feather name="check-circle" size={14} color={colors.primary} />
+                <Text style={[styles.pausedLabel, { color: colors.primary }]}>PRONTA PARA PROCESSAR</Text>
               </View>
             ) : null}
           </View>
@@ -231,6 +336,12 @@ export function RecordingBottomSheet() {
 
           {isSessionActive ? (
             <View style={[styles.sessionSpacer, isExpanded && styles.sessionSpacerExpanded]} />
+          ) : hasCompletedRecording ? (
+            <View style={styles.finishedSummary}>
+              <Text style={[styles.finishedSummaryText, { color: colors.bodyText }]}>
+                Seu áudio foi salvo localmente. Escolha processar a reunião para enviar à IA ou descarte o arquivo.
+              </Text>
+            </View>
           ) : (
             <View style={styles.hints}>
               {[
@@ -249,7 +360,32 @@ export function RecordingBottomSheet() {
           )}
 
           <View style={styles.controls}>
-            {!isSessionActive ? (
+            {hasCompletedRecording ? (
+              <View style={styles.completedControls}>
+                <TouchableOpacity
+                  style={[styles.processAction, { backgroundColor: "rgba(255,59,48,0.10)" }]}
+                  onPress={handleDiscardRecording}
+                  activeOpacity={0.88}
+                >
+                  <Feather name="trash-2" size={18} color="#FF3B30" />
+                  <Text style={[styles.processActionLabel, { color: "#FF3B30" }]}>Descartar reunião</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.processAction, { backgroundColor: colors.primary }]}
+                  onPress={handleProcessRecording}
+                  activeOpacity={0.9}
+                  disabled={isProcessingMeeting}
+                >
+                  {isProcessingMeeting ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Feather name="upload-cloud" size={18} color="#FFFFFF" />
+                  )}
+                  <Text style={[styles.processActionLabel, { color: "#FFFFFF" }]}>Processar reunião</Text>
+                </TouchableOpacity>
+              </View>
+            ) : !isSessionActive ? (
               <TouchableOpacity
                 style={[
                   styles.bigBtn,
@@ -258,11 +394,11 @@ export function RecordingBottomSheet() {
                 ]}
                 onPress={handleStart}
                 activeOpacity={0.92}
-              >
-                <Feather name="mic" size={28} color="#FFFFFF" />
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.activeControls}>
+                >
+                  <Feather name="mic" size={28} color="#FFFFFF" />
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.activeControls}>
                 <TouchableOpacity
                   style={[styles.controlBtn, { backgroundColor: "rgba(255,59,48,0.10)" }]}
                   onPress={handleStop}
@@ -415,6 +551,16 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 18,
   },
+  finishedSummary: {
+    marginTop: 24,
+    minHeight: 68,
+    justifyContent: "center",
+  },
+  finishedSummaryText: {
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 20,
+  },
   hintRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -436,6 +582,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 36,
     paddingBottom: 12,
+    width: "100%",
   },
   bigBtn: {
     width: 72,
@@ -448,6 +595,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 28,
+  },
+  completedControls: {
+    width: "100%",
+    gap: 10,
+  },
+  processAction: {
+    height: 52,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  processActionLabel: {
+    fontSize: 14,
+    fontWeight: "700",
   },
   controlBtn: {
     width: 56,

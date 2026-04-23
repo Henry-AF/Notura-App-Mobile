@@ -14,8 +14,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { LoginApiError, loginWithPassword } from "./(auth)/login-api";
+import { RegisterApiError, registerWithPassword } from "./(auth)/register-api";
 
 type Mode = "login" | "register";
 
@@ -25,11 +26,22 @@ const TRUST_METRICS = [
   { value: "Sync", label: "fluxo contínuo" },
 ];
 
+function getAuthErrorMessage(error: unknown) {
+  if (error instanceof LoginApiError || error instanceof RegisterApiError) {
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Não foi possível autenticar agora. Tente novamente.";
+}
+
 export default function AuthScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { login } = useApp();
 
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
@@ -37,14 +49,33 @@ export default function AuthScreen() {
   const [name, setName] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   async function handleSubmit() {
-    if (!email || !password) return;
+    setErrorMessage("");
+    setSuccessMessage("");
     setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    login(email);
-    router.replace("/(tabs)");
-    setLoading(false);
+
+    try {
+      if (mode === "login") {
+        await loginWithPassword({ email, password });
+        router.replace("/(tabs)");
+        return;
+      }
+
+      const result = await registerWithPassword({ name, email, password });
+      if (result.requiresEmailConfirmation) {
+        setSuccessMessage("Conta criada. Verifique seu email para confirmar o acesso.");
+        return;
+      }
+
+      router.replace("/(tabs)");
+    } catch (error) {
+      setErrorMessage(getAuthErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -198,6 +229,13 @@ export default function AuthScreen() {
               <TouchableOpacity style={styles.forgotWrap} activeOpacity={0.8}>
                 <Text style={[styles.forgotText, { color: colors.primary }]}>Esqueceu sua senha?</Text>
               </TouchableOpacity>
+            ) : null}
+
+            {errorMessage.length > 0 ? (
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            ) : null}
+            {successMessage.length > 0 ? (
+              <Text style={styles.successText}>{successMessage}</Text>
             ) : null}
 
             <TouchableOpacity
@@ -438,6 +476,14 @@ const styles = StyleSheet.create({
   forgotText: {
     fontSize: 13,
     fontWeight: "500",
+  },
+  errorText: {
+    fontSize: 12,
+    color: "#C92727",
+  },
+  successText: {
+    fontSize: 12,
+    color: "#1D9E75",
   },
   submitBtn: {
     height: 54,

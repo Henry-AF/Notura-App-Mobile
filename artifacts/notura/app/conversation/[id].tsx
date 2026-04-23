@@ -1,7 +1,8 @@
 import { Feather } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { Alert, Modal, Platform, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Alert, Animated, Easing, Modal, Platform, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppNavbar } from "@/components/AppNavbar";
@@ -12,8 +13,9 @@ import { GlassCard } from "@/components/GlassCard";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import type { ActionItem, ActionItemStatus, TaskPriority } from "@/lib/mockData";
+import { fetchMeetingDetail, type MeetingDetailData } from "./meeting-detail-api";
 
-const TABS = ["Resumo", "Transcrição", "Ações", "Destaques"] as const;
+const TABS = ["Resumo", "Transcrição", "Ações", "Decisões"] as const;
 type Tab = (typeof TABS)[number];
 type ActionGroupKey = "todo" | "in_progress" | "done";
 
@@ -59,11 +61,168 @@ function priorityLabel(priority: TaskPriority) {
   }
 }
 
+function resolveMeetingId(rawId: string | string[] | undefined) {
+  if (Array.isArray(rawId)) {
+    return rawId[0] ?? "";
+  }
+
+  if (typeof rawId === "string") {
+    return rawId;
+  }
+
+  return "";
+}
+
+function ConversationDetailContentSkeleton({
+  colors,
+  pulseStyle,
+}: {
+  colors: ReturnType<typeof useColors>;
+  pulseStyle: { opacity: Animated.AnimatedInterpolation<number> };
+}) {
+  return (
+    <View style={styles.tabSection}>
+      <GlassCard style={{ gap: 14 }}>
+        <View style={styles.summaryHeader}>
+          <Animated.View
+            style={[
+              styles.skeletonIcon,
+              { backgroundColor: colors.gray300 },
+              pulseStyle,
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.skeletonLine,
+              styles.skeletonSummaryTitle,
+              { backgroundColor: colors.gray300 },
+              pulseStyle,
+            ]}
+          />
+        </View>
+
+        <Animated.View
+          style={[
+            styles.skeletonLine,
+            styles.skeletonLineFull,
+            { backgroundColor: "#F2F2F7" },
+            pulseStyle,
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.skeletonLine,
+            styles.skeletonLineFull,
+            { backgroundColor: "#F2F2F7" },
+            pulseStyle,
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.skeletonLine,
+            styles.skeletonLineShort,
+            { backgroundColor: "#F2F2F7" },
+            pulseStyle,
+          ]}
+        />
+      </GlassCard>
+
+      <GlassCard style={{ gap: 14 }}>
+        <Animated.View
+          style={[
+            styles.skeletonLine,
+            styles.skeletonSectionTitle,
+            { backgroundColor: colors.gray300 },
+            pulseStyle,
+          ]}
+        />
+
+        <Animated.View
+          style={[
+            styles.skeletonLine,
+            styles.skeletonLineMedium,
+            { backgroundColor: "#F2F2F7" },
+            pulseStyle,
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.skeletonLine,
+            styles.skeletonLineShort,
+            { backgroundColor: "#F2F2F7" },
+            pulseStyle,
+          ]}
+        />
+
+        <View style={styles.skeletonPillRow}>
+          {[0, 1, 2].map((pill) => (
+            <Animated.View
+              key={pill}
+              style={[
+                styles.skeletonPill,
+                { backgroundColor: "#F2F2F7" },
+                pulseStyle,
+              ]}
+            />
+          ))}
+        </View>
+      </GlassCard>
+
+      <GlassCard style={{ gap: 14 }}>
+        <Animated.View
+          style={[
+            styles.skeletonLine,
+            styles.skeletonSectionTitle,
+            { backgroundColor: colors.gray300 },
+            pulseStyle,
+          ]}
+        />
+
+        {[0, 1, 2].map((row) => (
+          <View key={row} style={styles.skeletonInsightRow}>
+            <Animated.View
+              style={[
+                styles.skeletonAvatar,
+                { backgroundColor: colors.gray300 },
+                pulseStyle,
+              ]}
+            />
+            <View style={{ flex: 1, gap: 8 }}>
+              <Animated.View
+                style={[
+                  styles.skeletonLine,
+                  styles.skeletonLineMedium,
+                  { backgroundColor: "#F2F2F7" },
+                  pulseStyle,
+                ]}
+              />
+              <Animated.View
+                style={[
+                  styles.skeletonLine,
+                  styles.skeletonLineShort,
+                  { backgroundColor: "#F2F2F7" },
+                  pulseStyle,
+                ]}
+              />
+            </View>
+          </View>
+        ))}
+      </GlassCard>
+    </View>
+  );
+}
+
 export default function ConversationDetailScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { conversations, updateActionItem, removeActionItem, addHighlight, highlights } = useApp();
+  const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = resolveMeetingId(rawId);
+  const { updateActionItem, removeActionItem, addHighlight } = useApp();
+  const meetingDetailQuery = useQuery({
+    queryKey: ["meeting-detail", id],
+    queryFn: () => fetchMeetingDetail(id),
+    enabled: id.length > 0,
+  });
   const [activeTab, setActiveTab] = useState<Tab>("Resumo");
   const [expandedActionGroups, setExpandedActionGroups] = useState<Record<ActionGroupKey, boolean>>({
     todo: true,
@@ -71,17 +230,46 @@ export default function ConversationDetailScreen() {
     done: true,
   });
   const [selectedAction, setSelectedAction] = useState<ActionItem | null>(null);
+  const [localActionItems, setLocalActionItems] = useState<ActionItem[] | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftDescription, setDraftDescription] = useState("");
   const [draftDueDate, setDraftDueDate] = useState("");
   const [draftPriority, setDraftPriority] = useState<TaskPriority>("medium");
   const [draftStatus, setDraftStatus] = useState<ActionItemStatus>("todo");
-
-  const conv = useMemo(() => conversations.find((c) => c.id === id), [conversations, id]);
+  const skeletonPulse = useRef(new Animated.Value(0)).current;
 
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 16;
 
-  if (!conv) {
+  useEffect(() => {
+    setLocalActionItems(null);
+  }, [meetingDetailQuery.data?.id]);
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(skeletonPulse, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.bezier(0.3, 0, 0.1, 1),
+          useNativeDriver: true,
+        }),
+        Animated.timing(skeletonPulse, {
+          toValue: 0,
+          duration: 900,
+          easing: Easing.bezier(0.3, 0, 0.1, 1),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
+  }, [skeletonPulse]);
+
+  if (id.length === 0) {
     return (
       <GlassBackground>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -91,31 +279,63 @@ export default function ConversationDetailScreen() {
     );
   }
 
-  const conversation = conv;
+  if (meetingDetailQuery.isError) {
+    return (
+      <GlassBackground>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 28 }}>
+          <Text style={{ color: colors.bodyText, fontSize: 16, textAlign: "center" }}>
+            Nao foi possivel carregar os detalhes desta reunião.
+          </Text>
+        </View>
+      </GlassBackground>
+    );
+  }
 
-  const convHighlights = (conversation.highlights ?? []).concat(
-    highlights.filter((h) => h.conversationId === id && !conversation.highlights?.find((ch) => ch.id === h.id))
-  );
-  const groupedActions = useMemo(() => {
-    const groups: Record<ActionGroupKey, ActionItem[]> = {
-      todo: [],
-      in_progress: [],
-      done: [],
-    };
+  const skeletonPulseStyle = {
+    opacity: skeletonPulse.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.62, 1],
+    }),
+  };
+  const isPending = meetingDetailQuery.isPending;
 
-    for (const action of conversation.actionItems ?? []) {
-      groups[normalizeActionStatus(action)].push(action);
-    }
+  if (!meetingDetailQuery.data && !isPending) {
+    return (
+      <GlassBackground>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text style={{ color: colors.bodyText, fontSize: 16 }}>Conversa não encontrada</Text>
+        </View>
+      </GlassBackground>
+    );
+  }
 
-    return groups;
-  }, [conversation.actionItems]);
+  const conversation: MeetingDetailData | null = meetingDetailQuery.data
+    ? localActionItems === null
+      ? meetingDetailQuery.data
+      : {
+          ...meetingDetailQuery.data,
+          actionItems: localActionItems,
+        }
+    : null;
+
+  const groupedActions: Record<ActionGroupKey, ActionItem[]> = {
+    todo: [],
+    in_progress: [],
+    done: [],
+  };
+
+  for (const action of conversation?.actionItems ?? []) {
+    groupedActions[normalizeActionStatus(action)].push(action);
+  }
 
   function handleShare() {
-    Share.share({ title: conversation.title, message: `${conversation.title}\n\n${conversation.summary ?? ""}` });
+    if (!conversation) return;
+    Share.share({ title: conversation.title, message: `${conversation.title}\n\n${conversation.summary}` });
   }
 
   function handleBookmark(segId: string) {
-    const seg = conversation.transcript?.find((s) => s.id === segId);
+    if (!conversation) return;
+    const seg = conversation.transcript.find((s) => s.id === segId);
     if (!seg) return;
     addHighlight({
       id: `h-${Date.now()}`,
@@ -158,7 +378,24 @@ export default function ConversationDetailScreen() {
   }
 
   function handleSaveAction() {
-    if (!selectedAction || !draftTitle.trim()) return;
+    if (!selectedAction || !draftTitle.trim() || !conversation) return;
+
+    setLocalActionItems((prev) => {
+      const source = prev ?? conversation.actionItems;
+      return source.map((action) =>
+        action.id === selectedAction.id
+          ? {
+              ...action,
+              text: draftTitle.trim(),
+              description: draftDescription.trim() || undefined,
+              dueDate: draftDueDate.trim() || undefined,
+              priority: draftPriority,
+              status: draftStatus,
+              completed: draftStatus === "done",
+            }
+          : action,
+      );
+    });
 
     updateActionItem(conversation.id, selectedAction.id, {
       text: draftTitle.trim(),
@@ -173,7 +410,11 @@ export default function ConversationDetailScreen() {
   }
 
   function handleDeleteAction() {
-    if (!selectedAction) return;
+    if (!selectedAction || !conversation) return;
+    setLocalActionItems((prev) => {
+      const source = prev ?? conversation.actionItems;
+      return source.filter((action) => action.id !== selectedAction.id);
+    });
     removeActionItem(conversation.id, selectedAction.id);
     closeActionSheet();
   }
@@ -182,51 +423,64 @@ export default function ConversationDetailScreen() {
     <GlassBackground>
       <View style={styles.root}>
         <AppNavbar title="Conversa" showBackButton />
-        <View style={styles.headerActionsRow}>
-          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: "rgba(175,82,222,0.08)" }]} onPress={handleShare}>
-            <Feather name="share-2" size={16} color={colors.heading} />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: "rgba(175,82,222,0.08)" }]}>
-            <Feather name="more-horizontal" size={16} color={colors.heading} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.titleSection}>
-          <Text style={[styles.convTitle, { color: colors.heading }]}>{conversation.title}</Text>
-          <View style={styles.convMeta}>
-            <Text style={[styles.metaText, { color: colors.bodyText }]}>{conversation.date}</Text>
-            <View style={[styles.metaDot, { backgroundColor: colors.gray300 }]} />
-            <Text style={[styles.metaText, { color: colors.bodyText }]}>{conversation.duration}</Text>
-            {conversation.wordCount && conversation.wordCount > 0 ? (
-              <>
-                <View style={[styles.metaDot, { backgroundColor: colors.gray300 }]} />
-                <Text style={[styles.metaText, { color: colors.bodyText }]}>{conversation.wordCount.toLocaleString("pt-BR")} palavras</Text>
-              </>
-            ) : null}
-          </View>
-          <View style={styles.speakerRow}>
-            <View style={styles.speakerStack}>
-              {conversation.speakers.map((sp, idx) => (
-                <View
-                  key={sp.id}
-                  style={[
-                    styles.speakerAvatarWrap,
-                    { marginLeft: idx > 0 ? -8 : 0, borderColor: "#FFFFFF" },
-                  ]}
-                >
-                  <Avatar initials={sp.initials} color={sp.color} size={22} />
-                </View>
-              ))}
+        {!isPending ? (
+          <>
+            <View style={styles.headerActionsRow}>
+              <TouchableOpacity style={[styles.iconBtn, { backgroundColor: "rgba(175,82,222,0.08)" }]} onPress={handleShare}>
+                <Feather name="share-2" size={16} color={colors.heading} />
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.iconBtn, { backgroundColor: "rgba(175,82,222,0.08)" }]}>
+                <Feather name="more-horizontal" size={16} color={colors.heading} />
+              </TouchableOpacity>
             </View>
-            <Text style={[styles.speakerCount, { color: colors.bodyText }]}>
-              {conversation.speakers.length} participante{conversation.speakers.length > 1 ? "s" : ""}
-            </Text>
-          </View>
-        </View>
+
+            <View style={styles.titleSection}>
+              <Text style={[styles.convTitle, { color: colors.heading }]}>{conversation.title}</Text>
+              <View style={styles.convMeta}>
+                <Text style={[styles.metaText, { color: colors.bodyText }]}>{conversation.date}</Text>
+                <View style={[styles.metaDot, { backgroundColor: colors.gray300 }]} />
+                <Text style={[styles.metaText, { color: colors.bodyText }]}>{conversation.duration}</Text>
+                {conversation.wordCount && conversation.wordCount > 0 ? (
+                  <>
+                    <View style={[styles.metaDot, { backgroundColor: colors.gray300 }]} />
+                    <Text style={[styles.metaText, { color: colors.bodyText }]}>{conversation.wordCount.toLocaleString("pt-BR")} palavras</Text>
+                  </>
+                ) : null}
+              </View>
+              <View style={styles.speakerRow}>
+                <View style={styles.speakerStack}>
+                  {conversation.speakers.map((sp, idx) => (
+                    <View
+                      key={sp.id}
+                      style={[
+                        styles.speakerAvatarWrap,
+                        { marginLeft: idx > 0 ? -8 : 0, borderColor: "#FFFFFF" },
+                      ]}
+                    >
+                      <Avatar initials={sp.initials} color={sp.color} size={22} />
+                    </View>
+                  ))}
+                </View>
+                <Text style={[styles.speakerCount, { color: colors.bodyText }]}>
+                  {conversation.speakers.length} participante{conversation.speakers.length > 1 ? "s" : ""}
+                </Text>
+              </View>
+            </View>
+          </>
+        ) : (
+          <View style={styles.pendingHeaderSpacer} />
+        )}
 
         <View style={[styles.tabBar, { borderBottomColor: "rgba(175,82,222,0.15)" }]}>
           {TABS.map((tab) => (
-            <TouchableOpacity key={tab} style={styles.tabBtn} onPress={() => setActiveTab(tab)} activeOpacity={0.7}>
+            <TouchableOpacity
+              key={tab}
+              style={styles.tabBtn}
+              onPress={() => {
+                if (!isPending) setActiveTab(tab);
+              }}
+              activeOpacity={0.7}
+            >
               <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary : colors.gray400, fontWeight: activeTab === tab ? "600" : "400" }]}>
                 {tab}
               </Text>
@@ -236,60 +490,64 @@ export default function ConversationDetailScreen() {
         </View>
 
         <ScrollView contentContainerStyle={[styles.tabContent, { paddingBottom: bottomPad }]} showsVerticalScrollIndicator={false}>
-          {activeTab === "Resumo" && (
-            <View style={styles.tabSection}>
-              {conversation.status === "processing" ? (
-                <GlassCard style={{ alignItems: "center", gap: 12 }}>
-                  <Feather name="loader" size={22} color="#FF9500" />
-                  <Text style={[styles.processingText, { color: colors.bodyText }]}>A IA está gerando seu resumo...</Text>
-                </GlassCard>
-              ) : (
-                <>
-                  <GlassCard style={{ gap: 10 }}>
-                    <View style={styles.summaryHeader}>
-                      <View style={[styles.summaryIcon, { backgroundColor: "rgba(175,82,222,0.10)" }]}>
-                        <Feather name="zap" size={12} color={colors.primary} />
-                      </View>
-                      <Text style={[styles.summaryTitle, { color: colors.heading }]}>Resumo IA</Text>
-                    </View>
-                    <Text style={[styles.summaryText, { color: colors.bodyText }]}>{conversation.summary}</Text>
-                  </GlassCard>
-
-                  {conversation.keyPoints && conversation.keyPoints.length > 0 && (
-                    <GlassCard style={{ gap: 10 }}>
-                      <Text style={[styles.cardSectionTitle, { color: colors.heading }]}>Pontos-chave</Text>
-                      {conversation.keyPoints.map((kp, i) => (
-                        <View key={i} style={styles.kpRow}>
-                          <View style={[styles.kpDot, { backgroundColor: colors.primary }]} />
-                          <Text style={[styles.kpText, { color: colors.bodyText }]}>{kp}</Text>
-                        </View>
-                      ))}
+          {isPending ? (
+            <ConversationDetailContentSkeleton colors={colors} pulseStyle={skeletonPulseStyle} />
+          ) : (
+            <>
+              {activeTab === "Resumo" && conversation && (
+                <View style={styles.tabSection}>
+                  {conversation.status === "processing" ? (
+                    <GlassCard style={{ alignItems: "center", gap: 12 }}>
+                      <Feather name="loader" size={22} color="#FF9500" />
+                      <Text style={[styles.processingText, { color: colors.bodyText }]}>A IA está gerando seu resumo...</Text>
                     </GlassCard>
-                  )}
-
-                  <GlassCard style={{ gap: 12 }}>
-                    <Text style={[styles.cardSectionTitle, { color: colors.heading }]}>Participantes</Text>
-                    {conversation.speakers.map((sp) => (
-                      <View key={sp.id} style={styles.participantRow}>
-                        <Avatar initials={sp.initials} color={sp.color} size={34} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={[styles.participantName, { color: colors.heading }]}>{sp.name}</Text>
-                          <View style={[styles.spTrack, { backgroundColor: "rgba(175,82,222,0.12)" }]}>
-                            <View style={[styles.spFill, { width: `${sp.talkTimePercent}%` as any, backgroundColor: sp.color }]} />
+                  ) : (
+                    <>
+                      <GlassCard style={{ gap: 10 }}>
+                        <View style={styles.summaryHeader}>
+                          <View style={[styles.summaryIcon, { backgroundColor: "rgba(175,82,222,0.10)" }]}>
+                            <Feather name="zap" size={12} color={colors.primary} />
                           </View>
+                          <Text style={[styles.summaryTitle, { color: colors.heading }]}>Resumo IA</Text>
                         </View>
-                        <Text style={[styles.spPct, { color: colors.bodyText }]}>{sp.talkTimePercent}%</Text>
-                      </View>
-                    ))}
-                  </GlassCard>
-                </>
-              )}
-            </View>
-          )}
+                        <Text style={[styles.summaryText, { color: colors.bodyText }]}>{conversation.summary}</Text>
+                      </GlassCard>
 
-          {activeTab === "Transcrição" && (
+                      {conversation.keyPoints.length > 0 && (
+                        <GlassCard style={{ gap: 10 }}>
+                          <Text style={[styles.cardSectionTitle, { color: colors.heading }]}>Pontos-chave</Text>
+                          {conversation.keyPoints.map((kp, i) => (
+                            <View key={i} style={styles.kpRow}>
+                              <View style={[styles.kpDot, { backgroundColor: colors.primary }]} />
+                              <Text style={[styles.kpText, { color: colors.bodyText }]}>{kp}</Text>
+                            </View>
+                          ))}
+                        </GlassCard>
+                      )}
+
+                      <GlassCard style={{ gap: 12 }}>
+                        <Text style={[styles.cardSectionTitle, { color: colors.heading }]}>Participantes</Text>
+                        {conversation.speakers.map((sp) => (
+                          <View key={sp.id} style={styles.participantRow}>
+                            <Avatar initials={sp.initials} color={sp.color} size={34} />
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.participantName, { color: colors.heading }]}>{sp.name}</Text>
+                              <View style={[styles.spTrack, { backgroundColor: "rgba(175,82,222,0.12)" }]}>
+                                <View style={[styles.spFill, { width: `${sp.talkTimePercent}%` as any, backgroundColor: sp.color }]} />
+                              </View>
+                            </View>
+                            <Text style={[styles.spPct, { color: colors.bodyText }]}>{sp.talkTimePercent}%</Text>
+                          </View>
+                        ))}
+                      </GlassCard>
+                    </>
+                  )}
+                </View>
+              )}
+
+              {activeTab === "Transcrição" && conversation && (
             <View style={styles.tabSection}>
-              {(conversation.transcript ?? []).length === 0 ? (
+              {conversation.transcript.length === 0 ? (
                 <View style={styles.empty}>
                   <View style={[styles.emptyIcon, { backgroundColor: "rgba(175,82,222,0.08)" }]}>
                     <Feather name="file-text" size={28} color={colors.gray400} />
@@ -299,7 +557,7 @@ export default function ConversationDetailScreen() {
                   </Text>
                 </View>
               ) : (
-                conversation.transcript!.map((seg) => (
+                conversation.transcript.map((seg) => (
                   <View key={seg.id} style={styles.segRow}>
                     <Avatar initials={seg.speakerInitials} color={seg.speakerColor} size={28} />
                     <View style={{ flex: 1 }}>
@@ -320,9 +578,9 @@ export default function ConversationDetailScreen() {
             </View>
           )}
 
-          {activeTab === "Ações" && (
+              {activeTab === "Ações" && conversation && (
             <View style={styles.tabSection}>
-              {(conversation.actionItems ?? []).length === 0 ? (
+              {conversation.actionItems.length === 0 ? (
                 <View style={styles.empty}>
                   <View style={[styles.emptyIcon, { backgroundColor: "rgba(175,82,222,0.08)" }]}>
                     <Feather name="check-square" size={28} color={colors.gray400} />
@@ -410,34 +668,38 @@ export default function ConversationDetailScreen() {
             </View>
           )}
 
-          {activeTab === "Destaques" && (
+              {activeTab === "Decisões" && conversation && (
             <View style={styles.tabSection}>
-              {convHighlights.length === 0 ? (
+              {conversation.decisions.length === 0 ? (
                 <View style={styles.empty}>
                   <View style={[styles.emptyIcon, { backgroundColor: "rgba(175,82,222,0.08)" }]}>
-                    <Feather name="bookmark" size={28} color={colors.gray400} />
+                    <Feather name="check-circle" size={28} color={colors.gray400} />
                   </View>
-                  <Text style={[styles.emptyTitle, { color: colors.heading }]}>Sem destaques</Text>
+                  <Text style={[styles.emptyTitle, { color: colors.heading }]}>Sem decisões</Text>
                   <Text style={[styles.emptySub, { color: colors.bodyText }]}>
-                    Toque no ícone de marcador na transcrição para salvar momentos importantes
+                    As decisões extraídas da reunião aparecerão aqui quando disponíveis
                   </Text>
                 </View>
               ) : (
-                convHighlights.map((h) => (
-                  <GlassCard key={h.id} noPad style={{ borderLeftWidth: 3, borderLeftColor: h.speakerColor, marginBottom: 10 }}>
+                conversation.decisions.map((decision) => (
+                  <GlassCard key={decision.id} noPad style={{ marginBottom: 10 }}>
                     <View style={styles.hlCardInner}>
                       <View style={styles.hlHeader}>
-                        <Avatar initials={h.speakerInitials} color={h.speakerColor} size={22} />
-                        <Text style={[styles.hlSpeaker, { color: h.speakerColor }]}>{h.speakerName}</Text>
-                        <Text style={[styles.hlTime, { color: colors.gray400 }]}>{h.timeLabel}</Text>
-                        {h.tag && <Badge label={h.tag} variant="primary" />}
+                        <Feather name="check-circle" size={14} color={colors.primary} />
+                        <Text style={[styles.decisionTitle, { color: colors.heading }]}>Decisão</Text>
+                        {decision.decidedBy ? (
+                          <Text style={[styles.hlTime, { color: colors.gray400 }]}>por {decision.decidedBy}</Text>
+                        ) : null}
+                        {decision.confidence ? <Badge label={decision.confidence} variant="primary" /> : null}
                       </View>
-                      <Text style={[styles.hlText, { color: colors.bodyText }]}>"{h.text}"</Text>
+                      <Text style={[styles.decisionText, { color: colors.bodyText }]}>{decision.description}</Text>
                     </View>
                   </GlassCard>
                 ))
               )}
             </View>
+          )}
+            </>
           )}
         </ScrollView>
       </View>
@@ -578,6 +840,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   iconBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   headerActionsRow: { paddingHorizontal: 20, paddingBottom: 10, flexDirection: "row", justifyContent: "flex-end", gap: 8 },
+  pendingHeaderSpacer: { height: 18 },
   titleSection: { paddingHorizontal: 20, gap: 6, marginBottom: 4 },
   convTitle: { fontSize: 20, fontWeight: "700", letterSpacing: -0.3 },
   convMeta: { flexDirection: "row", alignItems: "center", gap: 5 },
@@ -593,6 +856,17 @@ const styles = StyleSheet.create({
   tabIndicator: { position: "absolute", bottom: 0, left: "15%", right: "15%", height: 2, borderRadius: 1 },
   tabContent: { paddingHorizontal: 16, paddingTop: 16 },
   tabSection: { gap: 12 },
+  skeletonIcon: { width: 22, height: 22, borderRadius: 7 },
+  skeletonAvatar: { width: 34, height: 34, borderRadius: 17 },
+  skeletonLine: { height: 12, borderRadius: 999 },
+  skeletonSummaryTitle: { width: 92 },
+  skeletonSectionTitle: { width: 118 },
+  skeletonLineFull: { width: "100%" },
+  skeletonLineMedium: { width: "74%" },
+  skeletonLineShort: { width: "58%" },
+  skeletonPillRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  skeletonPill: { width: 72, height: 30, borderRadius: 999 },
+  skeletonInsightRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   processingText: { fontSize: 14 },
   summaryHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   summaryIcon: { width: 22, height: 22, borderRadius: 7, alignItems: "center", justifyContent: "center" },
@@ -705,6 +979,8 @@ const styles = StyleSheet.create({
   hlSpeaker: { fontSize: 12, fontWeight: "600", flex: 1 },
   hlTime: { fontSize: 11 },
   hlText: { fontSize: 13, lineHeight: 20, fontStyle: "italic" },
+  decisionTitle: { fontSize: 12, fontWeight: "700", flex: 1 },
+  decisionText: { fontSize: 13, lineHeight: 20 },
   empty: { alignItems: "center", paddingTop: 56, gap: 10 },
   emptyIcon: { width: 64, height: 64, borderRadius: 20, alignItems: "center", justifyContent: "center", marginBottom: 4 },
   emptyTitle: { fontSize: 16, fontWeight: "600" },

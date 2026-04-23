@@ -25,9 +25,13 @@ test("meetings tab should render a premium meetings library instead of the old s
     "Expected meetings screen to expose Portuguese status labels for recorded meetings"
   );
   assert.ok(
-    meetingsScreenSource.includes("sort(") &&
-      meetingsScreenSource.includes("parseMeetingDate"),
-    "Expected meetings screen to sort meetings by recording date"
+    meetingsScreenSource.includes("queryKey: [\"meetings-library\"]") &&
+      meetingsScreenSource.includes("fetchMeetingsLibrary"),
+    "Expected meetings screen to load meetings data through TanStack Query + search-api helper"
+  );
+  assert.ok(
+    !meetingsScreenSource.includes("const { conversations } = useApp();"),
+    "Expected meetings screen to stop using AppContext conversations as server-state source"
   );
   assert.ok(
     meetingsScreenSource.includes('router.push(`/conversation/${conversation.id}`)'),

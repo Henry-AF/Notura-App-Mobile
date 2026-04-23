@@ -5,7 +5,7 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
@@ -15,25 +15,33 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider, useApp } from "@/context/AppContext";
+import {
+  configureMobileQueryFocusSync,
+  queryClient,
+} from "@/lib/query-client";
 
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient();
-
 function RootLayoutNav() {
-  const { isAuthenticated } = useApp();
+  const { isAuthenticated, isSessionReady } = useApp();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    const inAuthGroup = segments[0] === "auth";
+    if (!isSessionReady) return;
+    const firstSegment = segments[0] as string | undefined;
+    const inAuthGroup = firstSegment === "auth";
 
     if (!isAuthenticated && !inAuthGroup) {
       router.replace("/auth");
     } else if (isAuthenticated && inAuthGroup) {
       router.replace("/(tabs)");
     }
-  }, [isAuthenticated, segments, router]);
+  }, [isAuthenticated, isSessionReady, segments, router]);
+
+  if (!isSessionReady) {
+    return null;
+  }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -56,10 +64,7 @@ function RootLayoutNav() {
         name="highlights"
         options={{ headerShown: false, presentation: "card" }}
       />
-      <Stack.Screen
-        name="auth"
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="auth" options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -77,6 +82,10 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
+
+  useEffect(() => {
+    return configureMobileQueryFocusSync();
+  }, []);
 
   if (!fontsLoaded && !fontError) return null;
 

@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import {
@@ -12,45 +13,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppNavbar } from "@/components/AppNavbar";
-import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import type { Conversation, ConversationStatus } from "@/lib/mockData";
+import {
+  fetchMeetingsLibrary,
+  type MeetingsLibraryItem,
+  type MeetingsLibraryStatus,
+} from "./search-api";
 
-const MONTH_INDEX: Record<string, number> = {
-  jan: 0,
-  fev: 1,
-  mar: 2,
-  abr: 3,
-  mai: 4,
-  jun: 5,
-  jul: 6,
-  ago: 7,
-  set: 8,
-  out: 9,
-  nov: 10,
-  dez: 11,
-};
-
-function parseMeetingDate(dateLabel: string) {
-  const normalized = dateLabel
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  const match = normalized.match(/(\d{1,2})\s+([a-z]{3})\s+(\d{4})/);
-
-  if (!match) return 0;
-
-  const day = Number(match[1]);
-  const month = MONTH_INDEX[match[2]];
-  const year = Number(match[3]);
-
-  if (Number.isNaN(day) || month === undefined || Number.isNaN(year)) return 0;
-
-  return new Date(year, month, day).getTime();
-}
-
-function statusMeta(status: ConversationStatus, colors: ReturnType<typeof useColors>) {
+function statusMeta(status: MeetingsLibraryStatus, colors: ReturnType<typeof useColors>) {
   switch (status) {
     case "completed":
       return {
@@ -70,16 +40,10 @@ function statusMeta(status: ConversationStatus, colors: ReturnType<typeof useCol
         backgroundColor: "rgba(255,59,48,0.12)",
         textColor: colors.error,
       };
-    case "recording":
-      return {
-        label: "Gravando",
-        backgroundColor: "rgba(255,59,48,0.12)",
-        textColor: colors.error,
-      };
   }
 }
 
-function MeetingCard({ conversation }: { conversation: Conversation }) {
+function MeetingCard({ conversation }: { conversation: MeetingsLibraryItem }) {
   const colors = useColors();
   const router = useRouter();
   const status = statusMeta(conversation.status, colors);
@@ -132,12 +96,12 @@ function MeetingCard({ conversation }: { conversation: Conversation }) {
           <View style={styles.cardFooter}>
             <View style={styles.metaInline}>
               <Feather name="calendar" size={12} color="#6D6D72" />
-              <Text style={styles.metaText}>Gravada em {conversation.date}</Text>
+              <Text style={styles.metaText}>Gravada em {conversation.recordedDateLabel}</Text>
             </View>
 
             <View style={styles.metaInline}>
               <Feather name="clock" size={12} color="#6D6D72" />
-              <Text style={styles.metaText}>{conversation.duration}</Text>
+              <Text style={styles.metaText}>{conversation.durationLabel}</Text>
             </View>
           </View>
         </View>
@@ -149,15 +113,11 @@ function MeetingCard({ conversation }: { conversation: Conversation }) {
 export default function MeetingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { conversations } = useApp();
-
-  const sortedMeetings = useMemo(
-    () =>
-      conversations
-        .slice()
-        .sort((left, right) => parseMeetingDate(right.date) - parseMeetingDate(left.date)),
-    [conversations]
-  );
+  const meetingsLibraryQuery = useQuery({
+    queryKey: ["meetings-library"],
+    queryFn: () => fetchMeetingsLibrary(),
+  });
+  const sortedMeetings = meetingsLibraryQuery.data ?? [];
 
   const statusSummary = useMemo(
     () => ({
@@ -212,10 +172,16 @@ export default function MeetingsScreen() {
               <Feather name="list" size={24} color="#5E4CEB" />
             </View>
             <Text style={[styles.emptyTitle, { color: colors.heading }]}>
-              Nenhuma reunião ainda
+              {meetingsLibraryQuery.isPending
+                ? "Carregando reuniões..."
+                : meetingsLibraryQuery.isError
+                  ? "Falha ao carregar reuniões"
+                  : "Nenhuma reunião ainda"}
             </Text>
             <Text style={[styles.emptySubtitle, { color: colors.bodyText }]}>
-              Quando suas gravações aparecerem, elas ficarão listadas aqui por data.
+              {meetingsLibraryQuery.isError
+                ? "Nao foi possivel carregar suas reuniões agora."
+                : "Quando suas gravações aparecerem, elas ficarão listadas aqui por data."}
             </Text>
           </View>
         }
