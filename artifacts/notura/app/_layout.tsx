@@ -49,6 +49,10 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
+        name="schedule"
+        options={{ headerShown: false, presentation: "card", animation: "slide_from_right" }}
+      />
+      <Stack.Screen
         name="record"
         options={{ headerShown: false, presentation: "modal" }}
       />
