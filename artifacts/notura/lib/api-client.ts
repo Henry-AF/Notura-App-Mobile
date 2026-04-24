@@ -1,6 +1,6 @@
 import { getAccessToken, getSupabaseAuth } from "./supabase.ts";
 
-export type PlanType = "free" | "pro" | "platinum";
+export type PlanType = "free" | "pro" | "team";
 export type ApiMeetingStatus = "pending" | "processing" | "completed" | "failed";
 
 export interface DashboardOverviewMeeting {
@@ -148,6 +148,22 @@ export interface UserMeResponse {
   };
 }
 
+export type PaidPlanType = Exclude<PlanType, "free">;
+export type AbacatePayCheckoutPlan = "pro" | "team";
+
+export interface AbacatePayCheckoutRequest {
+  plan: AbacatePayCheckoutPlan;
+}
+
+export type AbacatePayCheckoutResponse =
+  | { checkoutUrl: string; alreadyActive?: never; plan?: never }
+  | { alreadyActive: true; plan: AbacatePayCheckoutPlan; checkoutUrl?: never };
+
+export interface AbacatePayVerifyResponse {
+  success: boolean;
+  plan: AbacatePayCheckoutPlan;
+}
+
 export class ApiClientError extends Error {
   readonly status: number;
   readonly data: unknown;
@@ -284,9 +300,10 @@ export function createApiRequester(dependencies: ApiRequesterDependencies = {}) 
     }
 
     let finalAttempt = firstAttempt;
+    let refreshedAccessToken: string | null = null;
 
     if (!explicitAuthorizationHeader) {
-      const refreshedAccessToken = await refreshAccessToken();
+      refreshedAccessToken = await refreshAccessToken();
       if (refreshedAccessToken !== null) {
         const retryHeaders = buildHeaders(incomingHeaders, serializedBody, refreshedAccessToken);
         retryHeaders.set("authorization", `Bearer ${refreshedAccessToken}`);
@@ -304,7 +321,7 @@ export function createApiRequester(dependencies: ApiRequesterDependencies = {}) 
       }
     }
 
-    if (finalAttempt.response.status === 401) {
+    if (finalAttempt.response.status === 401 && refreshedAccessToken === null) {
       await signOut();
     }
 
@@ -354,6 +371,18 @@ export const api = {
   },
   user: {
     me: () => requestJson<UserMeResponse>("/api/user/me"),
+  },
+  abacatepay: {
+    checkout: (plan: AbacatePayCheckoutPlan) =>
+      requestJson<AbacatePayCheckoutResponse>("/api/abacatepay/checkout", {
+        method: "POST",
+        body: { plan } satisfies AbacatePayCheckoutRequest,
+      }),
+    verify: () =>
+      requestJson<AbacatePayVerifyResponse>(
+        "/api/abacatepay/checkout/verify",
+        { method: "POST" },
+      ),
   },
   auth: {
     logout: () => requestJson<null>("/api/auth/logout", { method: "POST" }),

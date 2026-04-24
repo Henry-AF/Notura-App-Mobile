@@ -34,7 +34,7 @@ interface AppContextType {
     initials: string;
     avatarColor?: string;
     avatarUrl?: string;
-    plan: "free" | "pro" | "platinum";
+    plan: "free" | "pro" | "team";
   };
   login: (email: string) => void;
   logout: () => void;
@@ -65,10 +65,11 @@ function normalizeConversations(conversations: Conversation[]) {
   }));
 }
 
-function normalizePlan(plan: string | undefined): "free" | "pro" | "platinum" {
-  if (plan === "pro" || plan === "platinum") {
+function normalizePlan(plan: string | undefined): "free" | "pro" | "team" {
+  if (plan === "pro" || plan === "team") {
     return plan;
   }
+  if (plan === "platinum") return "team";
   return "free";
 }
 

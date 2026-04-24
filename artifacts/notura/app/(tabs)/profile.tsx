@@ -17,8 +17,8 @@ import { Avatar } from "@/components/Avatar";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
-function formatPlanLabel(plan: "free" | "pro" | "platinum") {
-  if (plan === "platinum") return "Platinum";
+function formatPlanLabel(plan: "free" | "pro" | "team") {
+  if (plan === "team") return "Platinum";
   if (plan === "pro") return "Pro";
   return "Free";
 }

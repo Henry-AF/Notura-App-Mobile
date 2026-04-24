@@ -78,3 +78,32 @@ test("createApiRequester deve deslogar se 401 persistir apos refresh", async () 
   assert.equal(signOutCalls, 1);
 });
 
+test("createApiRequester nao deve deslogar se a API rejeitar um token renovado", async () => {
+  let signOutCalls = 0;
+  let refreshCalls = 0;
+
+  const requester = createApiRequester({
+    baseUrl: "http://localhost:3000",
+    fetchImpl: async () => jsonResponse({ error: "Nao autenticado." }, 401),
+    getAccessToken: async () => "old-token",
+    refreshAccessToken: async () => {
+      refreshCalls += 1;
+      return "new-token";
+    },
+    signOut: async () => {
+      signOutCalls += 1;
+    },
+  });
+
+  await assert.rejects(
+    () => requester("/api/user/me"),
+    (error: unknown) => {
+      assert.ok(error instanceof ApiClientError);
+      assert.equal(error.status, 401);
+      return true;
+    },
+  );
+
+  assert.equal(refreshCalls, 1);
+  assert.equal(signOutCalls, 0);
+});
