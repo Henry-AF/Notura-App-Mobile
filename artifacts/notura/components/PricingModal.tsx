@@ -1,8 +1,10 @@
 import { Feather } from "@expo/vector-icons";
+import * as WebBrowser from "expo-web-browser";
 import React from "react";
-import { Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { GlassCard } from "@/components/GlassCard";
+import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 interface PricingModalProps {
@@ -17,7 +19,6 @@ const PLANS = [
     price: "R$0",
     period: "/mês",
     highlight: false,
-    current: true,
     features: ["até 3 reuniões"],
   },
   {
@@ -28,6 +29,7 @@ const PLANS = [
     highlight: true,
     badge: "Mais popular",
     features: ["Até 30 reuniões"],
+    cta: "Ir para checkout",
   },
   {
     id: "platinum",
@@ -36,11 +38,43 @@ const PLANS = [
     period: "/mês",
     highlight: false,
     features: ["Ilimitado"],
+    cta: "Ir para checkout",
   },
 ] as const;
 
+type PlanId = (typeof PLANS)[number]["id"];
+
+function getCheckoutUrl(planId: PlanId) {
+  if (planId === "pro") {
+    return process.env.EXPO_PUBLIC_PRO_CHECKOUT_URL;
+  }
+
+  if (planId === "platinum") {
+    return process.env.EXPO_PUBLIC_PLATINUM_CHECKOUT_URL;
+  }
+
+  return null;
+}
+
 export function PricingModal({ visible, onClose }: PricingModalProps) {
   const colors = useColors();
+  const { currentUser } = useApp();
+
+  async function handlePlanAction(planId: PlanId, isCurrentPlan: boolean) {
+    if (isCurrentPlan) {
+      return;
+    }
+
+    const checkoutUrl = getCheckoutUrl(planId);
+
+    if (typeof checkoutUrl !== "string" || checkoutUrl.trim().length === 0) {
+      Alert.alert("Checkout indisponível", "Configure a URL do checkout desse plano para continuar.");
+      return;
+    }
+
+    onClose();
+    await WebBrowser.openBrowserAsync(checkoutUrl);
+  }
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -62,6 +96,8 @@ export function PricingModal({ visible, onClose }: PricingModalProps) {
 
           <View style={styles.plans}>
             {PLANS.map((plan) => {
+              const isCurrentPlan = currentUser.plan === plan.id;
+
               if (plan.highlight) {
                 return (
                   <View
@@ -96,6 +132,27 @@ export function PricingModal({ visible, onClose }: PricingModalProps) {
                         </View>
                       ))}
                     </View>
+                    {isCurrentPlan ? (
+                      <View style={[styles.currentPill, styles.currentPillOnHighlight]}>
+                        <Text style={[styles.currentText, styles.currentTextOnHighlight]}>Plano atual</Text>
+                      </View>
+                    ) : null}
+                    <TouchableOpacity
+                      style={[
+                        styles.planActionButton,
+                        styles.planActionButtonOnHighlight,
+                        isCurrentPlan && styles.planActionButtonDisabled,
+                      ]}
+                      activeOpacity={0.9}
+                      disabled={isCurrentPlan}
+                      onPress={() => {
+                        void handlePlanAction(plan.id, isCurrentPlan);
+                      }}
+                    >
+                      <Text style={[styles.planActionText, styles.planActionTextOnHighlight]}>
+                        {isCurrentPlan ? "Plano atual" : plan.cta}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 );
               }
@@ -115,32 +172,31 @@ export function PricingModal({ visible, onClose }: PricingModalProps) {
                       </View>
                     ))}
                   </View>
-                  {plan.current ? (
+                  {isCurrentPlan ? (
                     <View style={[styles.currentPill, { backgroundColor: "rgba(175,82,222,0.08)" }]}>
                       <Text style={[styles.currentText, { color: colors.bodyText }]}>Plano atual</Text>
                     </View>
+                  ) : null}
+                  {plan.id !== "free" ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.planActionButton,
+                        { backgroundColor: colors.primary },
+                        isCurrentPlan && styles.planActionButtonDisabled,
+                      ]}
+                      activeOpacity={0.9}
+                      disabled={isCurrentPlan}
+                      onPress={() => {
+                        void handlePlanAction(plan.id, isCurrentPlan);
+                      }}
+                    >
+                      <Text style={styles.planActionText}>{isCurrentPlan ? "Plano atual" : plan.cta}</Text>
+                    </TouchableOpacity>
                   ) : null}
                 </GlassCard>
               );
             })}
           </View>
-
-          <TouchableOpacity
-            style={[
-              styles.upgradeBtn,
-              { backgroundColor: colors.primary },
-              Platform.OS === "ios" && {
-                shadowColor: "#7B2FBE",
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.3,
-                shadowRadius: 14,
-              },
-            ]}
-            activeOpacity={0.92}
-          >
-            <Feather name="zap" size={17} color="#fff" />
-            <Text style={styles.upgradeBtnText}>Escolher plano</Text>
-          </TouchableOpacity>
 
           <Text style={[styles.footer, { color: colors.gray400 }]}>
             Cancele quando quiser · Cobrança mensal · Pagamento seguro
@@ -171,7 +227,12 @@ const styles = StyleSheet.create({
   featureText: { fontSize: 14 },
   currentPill: { alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 9999 },
   currentText: { fontSize: 12, fontWeight: "500" },
-  upgradeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 54, borderRadius: 9999 },
-  upgradeBtnText: { fontSize: 16, fontWeight: "600", color: "#fff" },
+  currentPillOnHighlight: { backgroundColor: "rgba(255,255,255,0.18)" },
+  currentTextOnHighlight: { color: "#FFFFFF" },
+  planActionButton: { minHeight: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 },
+  planActionButtonOnHighlight: { backgroundColor: "#FFFFFF" },
+  planActionButtonDisabled: { opacity: 0.65 },
+  planActionText: { fontSize: 15, fontWeight: "600", color: "#FFFFFF" },
+  planActionTextOnHighlight: { color: "#7B2FBE" },
   footer: { fontSize: 12, textAlign: "center" },
 });

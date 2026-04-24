@@ -49,6 +49,12 @@ test("actions tab should expose a bottom sheet editor for moving and editing tas
       conversationSource.includes("removeActionItem"),
     "Expected actions bottom sheet to update and delete tasks through context"
   );
+  assert.ok(
+    conversationSource.includes("useMutation") &&
+      conversationSource.includes("updateMeetingTask") &&
+      conversationSource.includes("deleteMeetingTask"),
+    "Expected actions bottom sheet to persist edits through API mutations"
+  );
 });
 
 test("action items should support explicit status and richer editing fields", () => {

@@ -27,4 +27,16 @@ test("pricing modal should expose Free, Pro and Platinum plans with the new pric
     pricingModalSource.includes("79,90"),
     "Expected pricing modal to show the Platinum price as 79,90"
   );
+  assert.ok(
+    pricingModalSource.includes("Plano atual"),
+    "Expected pricing modal to indicate the current plan"
+  );
+  assert.ok(
+    pricingModalSource.includes("Ir para checkout"),
+    "Expected pricing modal to render checkout actions on the plan cards"
+  );
+  assert.ok(
+    !pricingModalSource.includes("Começar no Free"),
+    "Expected pricing modal to avoid rendering a CTA for the free plan"
+  );
 });

@@ -44,6 +44,8 @@ export interface MeetingsListResponse {
 
 export type ApiTaskStatus = "todo" | "in_progress" | "completed";
 
+export type ApiTaskPriority = "alta" | "media" | "baixa";
+
 export interface MeetingDetailTask {
   id: string;
   description: string;
@@ -53,6 +55,32 @@ export interface MeetingDetailTask {
   due_date: string | null;
   status: ApiTaskStatus | null;
   kanban_status: ApiTaskStatus | null;
+}
+
+export interface UpdateTaskRequest {
+  description?: string;
+  priority?: ApiTaskPriority;
+  owner?: string | null;
+  due_date?: string | null;
+  status?: ApiTaskStatus;
+}
+
+export interface UpdateTaskResponse {
+  task: {
+    id: string;
+    title?: string;
+    description?: string;
+    priority?: string | null;
+    owner?: string | null;
+    due_date?: string | null;
+    status?: ApiTaskStatus | null;
+    kanban_status?: ApiTaskStatus | null;
+    completed?: boolean;
+  };
+}
+
+export interface DeleteTaskResponse {
+  success: boolean;
 }
 
 export interface MeetingDetailResponse {
@@ -312,6 +340,17 @@ export const api = {
       requestJson<MeetingStatusResponse>(
         `/api/meetings/${encodeURIComponent(id)}/status`,
       ),
+  },
+  tasks: {
+    update: (id: string, payload: UpdateTaskRequest) =>
+      requestJson<UpdateTaskResponse>(`/api/tasks/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: payload,
+      }),
+    remove: (id: string) =>
+      requestJson<DeleteTaskResponse>(`/api/tasks/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      }),
   },
   user: {
     me: () => requestJson<UserMeResponse>("/api/user/me"),

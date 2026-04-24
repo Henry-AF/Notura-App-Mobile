@@ -321,31 +321,37 @@ function normalizeTaskStatus(
   return completed ? "done" : "todo";
 }
 
-function formatDueDate(dueDate: string | null) {
-  if (!dueDate) return undefined;
-  const parsed = new Date(`${dueDate}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return dueDate;
+function splitTaskDescription(rawDescription: string) {
+  const normalized = rawDescription.trim();
+  if (normalized.length === 0) {
+    return { text: "Tarefa sem titulo", description: undefined as string | undefined };
+  }
 
-  const day = String(parsed.getDate()).padStart(2, "0");
-  const month = MONTH_SHORT_LABELS[parsed.getMonth()];
-  return `${day} ${month}`;
+  const parts = normalized.split(/\n\s*\n/);
+  const text = parts[0]?.trim() || "Tarefa sem titulo";
+  const detail = parts.slice(1).join("\n\n").trim();
+  return {
+    text,
+    description: detail.length > 0 ? detail : undefined,
+  };
 }
 
 function mapTasksToActionItems(tasks: MeetingDetailResponse["tasks"]): ActionItem[] {
   return tasks.map((task, index) => {
     const assignee = task.owner && task.owner.trim().length > 0 ? task.owner : "Sem responsável";
+    const parsedDescription = splitTaskDescription(task.description);
     const status = normalizeTaskStatus(task.kanban_status, task.status, task.completed);
     return {
       id: task.id,
-      text: task.description,
-      description: undefined,
+      text: parsedDescription.text,
+      description: parsedDescription.description,
       assignee,
       assigneeInitials: toInitials(assignee),
       assigneeColor: SPEAKER_COLORS[index % SPEAKER_COLORS.length],
       priority: normalizeTaskPriority(task.priority),
       status,
       completed: status === "done",
-      dueDate: formatDueDate(task.due_date),
+      dueDate: task.due_date ?? undefined,
     };
   });
 }

@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, Animated, Easing, Modal, Platform, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -14,6 +14,7 @@ import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import type { ActionItem, ActionItemStatus, TaskPriority } from "@/lib/mockData";
 import { fetchMeetingDetail, type MeetingDetailData } from "./meeting-detail-api";
+import { deleteMeetingTask, formatDueDateLabel, normalizeDueDateInput, updateMeetingTask } from "./task-editor-api";
 
 const TABS = ["Resumo", "Transcrição", "Ações", "Decisões"] as const;
 type Tab = (typeof TABS)[number];
@@ -71,6 +72,18 @@ function resolveMeetingId(rawId: string | string[] | undefined) {
   }
 
   return "";
+}
+
+function applyActionUpdate(
+  actions: ActionItem[],
+  actionId: string,
+  updates: Partial<ActionItem>,
+) {
+  return actions.map((action) => (action.id === actionId ? { ...action, ...updates } : action));
+}
+
+function removeActionById(actions: ActionItem[], actionId: string) {
+  return actions.filter((action) => action.id !== actionId);
 }
 
 function ConversationDetailContentSkeleton({
@@ -215,6 +228,7 @@ function ConversationDetailContentSkeleton({
 export default function ConversationDetailScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const { id: rawId } = useLocalSearchParams<{ id?: string | string[] }>();
   const id = resolveMeetingId(rawId);
   const { updateActionItem, removeActionItem, addHighlight } = useApp();
@@ -237,8 +251,21 @@ export default function ConversationDetailScreen() {
   const [draftPriority, setDraftPriority] = useState<TaskPriority>("medium");
   const [draftStatus, setDraftStatus] = useState<ActionItemStatus>("todo");
   const skeletonPulse = useRef(new Animated.Value(0)).current;
+  const updateActionMutation = useMutation({
+    mutationFn: (input: Parameters<typeof updateMeetingTask>[0]) => updateMeetingTask(input),
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["meeting-detail", id] });
+    },
+  });
+  const deleteActionMutation = useMutation({
+    mutationFn: (taskId: string) => deleteMeetingTask(taskId),
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["meeting-detail", id] });
+    },
+  });
 
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 16;
+  const isPersistingAction = updateActionMutation.isPending || deleteActionMutation.isPending;
 
   useEffect(() => {
     setLocalActionItems(null);
@@ -369,6 +396,7 @@ export default function ConversationDetailScreen() {
   }
 
   function closeActionSheet() {
+    if (isPersistingAction) return;
     setSelectedAction(null);
     setDraftTitle("");
     setDraftDescription("");
@@ -377,46 +405,55 @@ export default function ConversationDetailScreen() {
     setDraftStatus("todo");
   }
 
-  function handleSaveAction() {
+  async function handleSaveAction() {
     if (!selectedAction || !draftTitle.trim() || !conversation) return;
 
-    setLocalActionItems((prev) => {
-      const source = prev ?? conversation.actionItems;
-      return source.map((action) =>
-        action.id === selectedAction.id
-          ? {
-              ...action,
-              text: draftTitle.trim(),
-              description: draftDescription.trim() || undefined,
-              dueDate: draftDueDate.trim() || undefined,
-              priority: draftPriority,
-              status: draftStatus,
-              completed: draftStatus === "done",
-            }
-          : action,
-      );
-    });
+    try {
+      const normalizedDueDate = normalizeDueDateInput(draftDueDate);
+      await updateActionMutation.mutateAsync({
+        taskId: selectedAction.id,
+        title: draftTitle,
+        description: draftDescription,
+        dueDate: draftDueDate,
+        priority: draftPriority,
+        status: draftStatus,
+      });
 
-    updateActionItem(conversation.id, selectedAction.id, {
-      text: draftTitle.trim(),
-      description: draftDescription.trim() || undefined,
-      dueDate: draftDueDate.trim() || undefined,
-      priority: draftPriority,
-      status: draftStatus,
-      completed: draftStatus === "done",
-    });
+      const updates: Partial<ActionItem> = {
+        text: draftTitle.trim(),
+        description: draftDescription.trim() || undefined,
+        dueDate: normalizedDueDate ?? undefined,
+        priority: draftPriority,
+        status: draftStatus,
+        completed: draftStatus === "done",
+      };
 
-    closeActionSheet();
+      setLocalActionItems((prev) => {
+        const source = prev ?? conversation.actionItems;
+        return applyActionUpdate(source, selectedAction.id, updates);
+      });
+      updateActionItem(conversation.id, selectedAction.id, updates);
+      closeActionSheet();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Tente novamente em instantes.";
+      Alert.alert("Nao foi possivel salvar a tarefa", message);
+    }
   }
 
-  function handleDeleteAction() {
+  async function handleDeleteAction() {
     if (!selectedAction || !conversation) return;
-    setLocalActionItems((prev) => {
-      const source = prev ?? conversation.actionItems;
-      return source.filter((action) => action.id !== selectedAction.id);
-    });
-    removeActionItem(conversation.id, selectedAction.id);
-    closeActionSheet();
+
+    try {
+      await deleteActionMutation.mutateAsync(selectedAction.id);
+      setLocalActionItems((prev) => {
+        const source = prev ?? conversation.actionItems;
+        return removeActionById(source, selectedAction.id);
+      });
+      removeActionItem(conversation.id, selectedAction.id);
+      closeActionSheet();
+    } catch {
+      Alert.alert("Nao foi possivel excluir a tarefa", "Tente novamente em instantes.");
+    }
   }
 
   return (
@@ -620,7 +657,9 @@ export default function ConversationDetailScreen() {
                               Nenhuma tarefa neste grupo.
                             </Text>
                           ) : (
-                            actions.map((action, idx) => (
+                            actions.map((action, idx) => {
+                              const dueDateLabel = formatDueDateLabel(action.dueDate);
+                              return (
                               <View key={action.id}>
                                 <TouchableOpacity
                                   style={styles.actionCell}
@@ -644,10 +683,10 @@ export default function ConversationDetailScreen() {
                                   <View style={styles.actionMeta}>
                                     <Avatar initials={action.assigneeInitials} color={action.assigneeColor} size={18} />
                                     <Text style={[styles.actionAssignee, { color: colors.bodyText }]}>{action.assignee}</Text>
-                                    {action.dueDate ? (
+                                    {dueDateLabel ? (
                                       <>
                                         <View style={[styles.metaDot, { backgroundColor: colors.gray300 }]} />
-                                        <Text style={[styles.actionDue, { color: colors.gray400 }]}>Vence {action.dueDate}</Text>
+                                        <Text style={[styles.actionDue, { color: colors.gray400 }]}>Vence {dueDateLabel}</Text>
                                       </>
                                     ) : null}
                                   </View>
@@ -657,7 +696,8 @@ export default function ConversationDetailScreen() {
                                   <View style={[styles.divider, { backgroundColor: "rgba(28,28,30,0.08)", marginLeft: 18, marginRight: 18 }]} />
                                 ) : null}
                               </View>
-                            ))
+                              );
+                            })
                           )}
                         </View>
                       )}
@@ -804,7 +844,7 @@ export default function ConversationDetailScreen() {
                 <TextInput
                   value={draftDueDate}
                   onChangeText={setDraftDueDate}
-                  placeholder="Ex: 25 abr"
+                  placeholder="YYYY-MM-DD"
                   placeholderTextColor={colors.gray400}
                   style={styles.formInput}
                 />
@@ -812,20 +852,26 @@ export default function ConversationDetailScreen() {
 
               <View style={styles.sheetFooter}>
                 <TouchableOpacity
-                  style={styles.deleteButton}
+                  style={[styles.deleteButton, isPersistingAction && styles.actionButtonDisabled]}
                   onPress={handleDeleteAction}
+                  disabled={isPersistingAction}
                   activeOpacity={0.86}
                 >
                   <Feather name="trash-2" size={16} color="#FF3B30" />
-                  <Text style={styles.deleteButtonText}>Excluir</Text>
+                  <Text style={styles.deleteButtonText}>
+                    {deleteActionMutation.isPending ? "Excluindo..." : "Excluir"}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.saveButton, { backgroundColor: colors.primary }]}
+                  style={[styles.saveButton, { backgroundColor: colors.primary }, isPersistingAction && styles.actionButtonDisabled]}
                   onPress={handleSaveAction}
+                  disabled={isPersistingAction}
                   activeOpacity={0.9}
                 >
-                  <Text style={styles.saveButtonText}>Salvar</Text>
+                  <Text style={styles.saveButtonText}>
+                    {updateActionMutation.isPending ? "Salvando..." : "Salvar"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -973,6 +1019,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  actionButtonDisabled: { opacity: 0.65 },
   saveButtonText: { fontSize: 15, fontWeight: "600", color: "#FFFFFF" },
   hlCardInner: { padding: 14, gap: 8 },
   hlHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
