@@ -19,6 +19,11 @@ test("tabs layout should mount the global recording sheet and floating indicator
     tabLayoutSource.includes("RecordingFloatingIndicator"),
     "Expected tabs layout to mount the recording floating indicator globally"
   );
+  assert.ok(
+    tabLayoutSource.includes("NewMeetingBottomSheet") &&
+      tabLayoutSource.includes("UploadMeetingBottomSheet"),
+    "Expected tabs layout to mount the new meeting entry and upload bottom sheets globally"
+  );
 });
 
 test("recording flow should be backed by a zustand store with reopen behavior", () => {
@@ -44,7 +49,10 @@ test("recording flow should be backed by a zustand store with reopen behavior", 
       storeSource.includes("startRecordingSession") &&
       storeSource.includes("pauseRecordingSession") &&
       storeSource.includes("resumeRecordingSession") &&
-      storeSource.includes("stopRecordingSession"),
+      storeSource.includes("stopRecordingSession") &&
+      storeSource.includes("completedRecording") &&
+      storeSource.includes("setCompletedRecording") &&
+      storeSource.includes("clearCompletedRecording"),
     "Expected recording store to expose full sheet and recording lifecycle actions"
   );
   assert.ok(

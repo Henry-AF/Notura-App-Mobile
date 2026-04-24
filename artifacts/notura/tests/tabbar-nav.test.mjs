@@ -30,8 +30,14 @@ test("tab bar should expose only Inicio, Reunioes and Gravar as regular tabs", (
     "Expected old tabs to be removed"
   );
   assert.ok(
-    tabBarSource.includes("openRecordingSheet"),
-    "Expected Gravar tab to open the recording bottom sheet"
+    tabBarSource.includes("openMeetingEntrySheet"),
+    "Expected Gravar tab to open the new meeting entry sheet"
+  );
+  assert.ok(
+    tabBarSource.includes("completedRecording !== null") &&
+      tabBarSource.includes('status !== "idle"') &&
+      tabBarSource.includes("openRecordingSheet"),
+    "Expected Gravar tab to preserve reopening the recording sheet when a session is active or ready to process"
   );
   assert.ok(
     !tabBarSource.includes('router.push("/record")'),

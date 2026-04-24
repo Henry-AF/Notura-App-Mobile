@@ -4,6 +4,7 @@ import React, { useRef } from "react";
 import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useMeetingCreationStore } from "@/stores/useMeetingCreationStore";
 import { useRecordingStore } from "@/stores/useRecordingStore";
 
 const TABS = [
@@ -18,8 +19,10 @@ const INACTIVE = "#C0BDD0";
 function TabButton({ tab, active }: { tab: typeof TABS[number]; active: boolean }) {
   const router = useRouter();
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const openMeetingEntrySheet = useMeetingCreationStore((state) => state.openMeetingEntrySheet);
   const openRecordingSheet = useRecordingStore((state) => state.openRecordingSheet);
   const status = useRecordingStore((state) => state.status);
+  const completedRecording = useRecordingStore((state) => state.completedRecording);
   const isRecordingTab = tab.match === "/record";
   const showRecordingDot = isRecordingTab && status === "recording";
 
@@ -30,7 +33,12 @@ function TabButton({ tab, active }: { tab: typeof TABS[number]; active: boolean 
     ]).start();
 
     if (tab.match === "/record") {
-      openRecordingSheet();
+      if (status !== "idle" || completedRecording !== null) {
+        openRecordingSheet();
+        return;
+      }
+
+      openMeetingEntrySheet();
       return;
     }
 

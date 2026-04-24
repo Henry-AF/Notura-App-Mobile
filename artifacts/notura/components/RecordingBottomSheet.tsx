@@ -36,10 +36,6 @@ export function RecordingBottomSheet() {
   const translateY = useRef(new Animated.Value(520)).current;
   const dragDismissThreshold = 120;
   const dragExpandThreshold = 80;
-  const [completedRecording, setCompletedRecording] = useState<{
-    localUri: string;
-    elapsedSeconds: number;
-  } | null>(null);
   const [isProcessingMeeting, setIsProcessingMeeting] = useState(false);
   const { start, pause, resume, stop } = useRecording();
   const {
@@ -53,6 +49,9 @@ export function RecordingBottomSheet() {
     pauseRecordingSession,
     resumeRecordingSession,
     stopRecordingSession,
+    completedRecording,
+    setCompletedRecording,
+    clearCompletedRecording,
   } = useRecordingStore(useShallow((state) => ({
     sheetState: state.sheetState,
     status: state.status,
@@ -64,6 +63,9 @@ export function RecordingBottomSheet() {
     pauseRecordingSession: state.pauseRecordingSession,
     resumeRecordingSession: state.resumeRecordingSession,
     stopRecordingSession: state.stopRecordingSession,
+    completedRecording: state.completedRecording,
+    setCompletedRecording: state.setCompletedRecording,
+    clearCompletedRecording: state.clearCompletedRecording,
   })));
   const isHidden = sheetState === "hidden";
   const isExpanded = sheetState === "expanded";
@@ -137,7 +139,7 @@ export function RecordingBottomSheet() {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       await start();
-      setCompletedRecording(null);
+      clearCompletedRecording();
       startRecordingSession();
     } catch (error) {
       Alert.alert(
@@ -180,7 +182,6 @@ export function RecordingBottomSheet() {
         localUri: finishedRecording.uri,
         elapsedSeconds: snapshot.elapsedSeconds,
       });
-      openRecordingSheet();
       await scheduleLocalNotification({
         title: "Gravação finalizada",
         body: "Você pode processar a reunião ou descartar o áudio.",
@@ -197,7 +198,7 @@ export function RecordingBottomSheet() {
     if (!completedRecording) return;
 
     await deleteLocalRecordingFile(completedRecording.localUri);
-    setCompletedRecording(null);
+    clearCompletedRecording();
   }
 
   function handleDiscardRecording() {
@@ -230,7 +231,7 @@ export function RecordingBottomSheet() {
       });
 
       await deleteLocalRecordingFile(completedRecording.localUri);
-      setCompletedRecording(null);
+      clearCompletedRecording();
       closeRecordingSheet();
 
       await scheduleLocalNotification({

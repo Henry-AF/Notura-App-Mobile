@@ -1,6 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { Fragment, useState } from "react";
 import {
   Alert,
   Platform,
@@ -15,305 +14,507 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppNavbar } from "@/components/AppNavbar";
 import { Avatar } from "@/components/Avatar";
-import { GlassCard } from "@/components/GlassCard";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
-const FOLDERS = [
-  { id: "f1", name: "Reuniões de Produto", date: "10 Jan, 2024", count: 12 },
-  { id: "f2", name: "Vendas & Demos", date: "02 Mar, 2024", count: 8 },
-  { id: "f3", name: "Liderança", date: "18 Abr, 2024", count: 5 },
-  { id: "f4", name: "Pessoal", date: "01 Jan, 2024", count: 3 },
-];
+function formatPlanLabel(plan: "free" | "pro" | "platinum") {
+  if (plan === "platinum") return "Platinum";
+  if (plan === "pro") return "Pro";
+  return "Free";
+}
 
-const TEAM = [
-  { id: "t1", name: "Revisão da Estratégia Q2", sub: "Produto · Engenharia · Design", status: "Ativo", speakers: [{ initials: "HC", color: "#9B59D0" }, { initials: "SK", color: "#AF52DE" }, { initials: "ML", color: "#7B2FBE" }] },
-  { id: "t2", name: "Onboarding — Acme Corp", sub: "Vendas · Sucesso do Cliente", status: "Ativo", speakers: [{ initials: "HC", color: "#9B59D0" }, { initials: "AK", color: "#AF52DE" }] },
-  { id: "t3", name: "Planejamento de Sprint", sub: "Engenharia · Design", status: "Concluído", speakers: [{ initials: "SK", color: "#AF52DE" }, { initials: "RJ", color: "#7B2FBE" }] },
-  { id: "t4", name: "Revisão de Campanha", sub: "Marketing", status: "Ativo", speakers: [{ initials: "TN", color: "#9B59D0" }, { initials: "HC", color: "#AF52DE" }] },
-];
+function SectionHeader({
+  title,
+  subtitle,
+  colors,
+}: {
+  title: string;
+  subtitle?: string;
+  colors: ReturnType<typeof useColors>;
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={[styles.sectionTitle, { color: colors.heading }]}>{title}</Text>
+      {subtitle ? (
+        <Text style={[styles.sectionSubtitle, { color: colors.bodyText }]}>{subtitle}</Text>
+      ) : null}
+    </View>
+  );
+}
+
+function SectionGroup({
+  children,
+  colors,
+}: {
+  children: React.ReactNode;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const items = React.Children.toArray(children);
+
+  return (
+    <View
+      style={[
+        styles.groupCard,
+        {
+          backgroundColor: "#FFFFFF",
+          borderColor: colors.gray300,
+          shadowColor: "#000000",
+        },
+      ]}
+    >
+      {items.map((child, index) => (
+        <Fragment key={index}>
+          {child}
+          {index < items.length - 1 ? (
+            <View style={[styles.groupDivider, { backgroundColor: colors.gray300 }]} />
+          ) : null}
+        </Fragment>
+      ))}
+    </View>
+  );
+}
+
+function SettingsRow({
+  icon,
+  iconColor,
+  iconBackground,
+  title,
+  subtitle,
+  right,
+}: {
+  icon: React.ComponentProps<typeof Feather>["name"];
+  iconColor: string;
+  iconBackground: string;
+  title: string;
+  subtitle: string;
+  right?: React.ReactNode;
+}) {
+  return (
+    <View style={styles.row}>
+      <View style={[styles.rowIconWrap, { backgroundColor: iconBackground }]}>
+        <Feather name={icon} size={17} color={iconColor} />
+      </View>
+      <View style={styles.rowTextWrap}>
+        <Text style={styles.rowTitle}>{title}</Text>
+        <Text style={styles.rowSubtitle}>{subtitle}</Text>
+      </View>
+      {right}
+    </View>
+  );
+}
 
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { currentUser, conversations, integrations, toggleIntegration, logout, setPricingVisible } = useApp();
+  const { currentUser, conversations, logout, setPricingVisible } = useApp();
   const [notifEnabled, setNotifEnabled] = useState(true);
   const [autoJoin, setAutoJoin] = useState(true);
-  const [aiModel, setAiModel] = useState("GPT-4o");
 
-  const bottomPad = Platform.OS === "web" ? 34 + 100 : insets.bottom + 110;
+  const bottomPad = Platform.OS === "web" ? 124 : insets.bottom + 110;
 
-  const totalHours = conversations.reduce((acc, c) => {
-    const parts = c.duration.split("h ");
-    const hours = parseInt(parts[0]) || 0;
-    const mins = parseInt(parts[1]) || 0;
+  const totalHours = conversations.reduce((acc, conversation) => {
+    const parts = conversation.duration.split("h ");
+    const hours = parseInt(parts[0], 10) || 0;
+    const mins = parseInt(parts[1], 10) || 0;
     return acc + hours + mins / 60;
   }, 0);
 
-  const totalActions = conversations.reduce((a, c) => a + (c.actionItems?.length ?? 0), 0);
+  const totalActions = conversations.reduce(
+    (acc, conversation) => acc + (conversation.actionItems?.length ?? 0),
+    0,
+  );
 
   return (
     <ScrollView
       contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
       showsVerticalScrollIndicator={false}
     >
-      <AppNavbar title="Perfil" />
+      <AppNavbar title="Perfil" showBackButton />
+
       <View style={styles.content}>
-
-      <View style={[styles.profileHeader, { backgroundColor: colors.darkCard }]}>
-        <View style={[styles.avatarRing]}>
-          <View style={[styles.avatarCircle, { backgroundColor: "rgba(175,82,222,0.45)" }]}>
-            <Text style={styles.avatarText}>{currentUser.initials}</Text>
-          </View>
-        </View>
-        <Text style={styles.profileName}>{currentUser.name}</Text>
-        <Text style={styles.profileRole}>
-          {currentUser.plan === "free"
-            ? "Notura AI — Plano Gratuito"
-            : currentUser.plan === "platinum"
-              ? "Platinum · Notura AI"
-              : "Pro · Notura AI"}
-        </Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNum}>{conversations.length}</Text>
-            <Text style={styles.statLabel}>Reuniões</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNum}>{Math.round(totalHours)}h</Text>
-            <Text style={styles.statLabel}>Gravadas</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNum}>{totalActions}</Text>
-            <Text style={styles.statLabel}>Ações</Text>
-          </View>
-        </View>
-      </View>
-
-      <TouchableOpacity activeOpacity={0.9} onPress={() => setPricingVisible(true)}>
-        <GlassCard noPad style={{ borderColor: "rgba(155,89,208,0.35)" }}>
-          <View style={styles.rowInner}>
-            <View style={[styles.iconWrap, { backgroundColor: "rgba(175,82,222,0.12)" }]}>
-              <Feather name="zap" size={18} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.rowTitle, { color: colors.heading }]}>
-                {currentUser.plan === "free" ? "Atualizar para Pro" : "Plano premium ativo"}
-              </Text>
-              <Text style={[styles.rowSub, { color: colors.bodyText }]}>
-                {currentUser.plan === "free" ? "Gravações ilimitadas + IA avançada" : "Todos os recursos desbloqueados"}
-              </Text>
-            </View>
-            {currentUser.plan === "free" && (
-              <View style={[styles.pill, { backgroundColor: colors.primary }]}>
-                <Text style={styles.pillText}>Upgrade</Text>
-              </View>
-            )}
-          </View>
-        </GlassCard>
-      </TouchableOpacity>
-
-      <View style={styles.sectionRow}>
-        <Text style={[styles.sectionTitle, { color: colors.heading }]}>Pastas</Text>
-        <TouchableOpacity><Text style={[styles.seeAll, { color: colors.primary }]}>Ver tudo</Text></TouchableOpacity>
-      </View>
-
-      <View style={styles.foldersRow}>
-        {FOLDERS.slice(0, 2).map((f) => (
-          <GlassCard key={f.id} noPad style={styles.folderCard}>
-            <View style={styles.folderInner}>
-              <View style={[styles.iconWrap, { backgroundColor: "rgba(175,82,222,0.10)" }]}>
-                <Feather name="folder" size={22} color="#AF52DE" />
-              </View>
-              <Text style={[styles.folderName, { color: colors.heading }]} numberOfLines={2}>{f.name}</Text>
-              <Text style={[styles.folderDate, { color: colors.bodyText }]}>Criado {f.date}</Text>
-              <Text style={[styles.folderCount, { color: colors.gray400 }]}>{f.count} itens</Text>
-            </View>
-          </GlassCard>
-        ))}
-      </View>
-
-      <View style={styles.sectionRow}>
-        <Text style={[styles.sectionTitle, { color: colors.heading }]}>Minha Equipe</Text>
-        <TouchableOpacity><Text style={[styles.seeAll, { color: colors.primary }]}>Ver tudo</Text></TouchableOpacity>
-      </View>
-
-      {TEAM.map((item) => (
-        <GlassCard key={item.id} noPad>
-          <View style={styles.rowInner}>
-            <View style={[styles.iconWrap, { backgroundColor: "rgba(175,82,222,0.10)" }]}>
-              <Feather name="users" size={18} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.rowTitle, { color: colors.heading }]} numberOfLines={1}>{item.name}</Text>
-              <Text style={[styles.rowSub, { color: colors.bodyText }]}>{item.sub}</Text>
-            </View>
-            <View style={{ alignItems: "flex-end", gap: 5 }}>
-              <View style={[styles.statusPill, {
-                backgroundColor: item.status === "Concluído" ? "rgba(52,199,89,0.12)" : "rgba(175,82,222,0.10)"
-              }]}>
-                <Text style={[styles.statusText, { color: item.status === "Concluído" ? "#34C759" : colors.primary }]}>
-                  {item.status}
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: "#FFFFFF",
+              borderColor: "rgba(0,0,0,0.05)",
+              shadowColor: "#000000",
+            },
+          ]}
+        >
+          <View style={styles.heroTopRow}>
+            <Avatar initials={currentUser.initials} color="#5E4CEB" size={64} />
+            <View style={styles.heroIdentity}>
+              <View
+                style={[
+                  styles.planBadge,
+                  { backgroundColor: "rgba(94,76,235,0.10)" },
+                ]}
+              >
+                <Text style={[styles.planBadgeText, { color: "#5E4CEB" }]}>
+                  {formatPlanLabel(currentUser.plan)}
                 </Text>
               </View>
-              <View style={{ flexDirection: "row" }}>
-                {item.speakers.slice(0, 3).map((s, i) => (
-                  <View key={i} style={{ marginLeft: i > 0 ? -6 : 0 }}>
-                    <Avatar initials={s.initials} color={s.color} size={22} />
-                  </View>
-                ))}
+              <Text style={[styles.profileName, { color: colors.heading }]}>
+                {currentUser.name}
+              </Text>
+              <Text style={[styles.profileEmail, { color: colors.bodyText }]}>
+                {currentUser.email}
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.statsPanel, { backgroundColor: "#F2F2F7" }]}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statNum, { color: colors.heading }]}>
+                {conversations.length}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.gray600 }]}>
+                Reunioes
+              </Text>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: colors.gray300 }]} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statNum, { color: colors.heading }]}>
+                {Math.round(totalHours)}h
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.gray600 }]}>
+                Gravadas
+              </Text>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: colors.gray300 }]} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statNum, { color: colors.heading }]}>
+                {totalActions}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.gray600 }]}>
+                Acoes
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <TouchableOpacity activeOpacity={0.92} onPress={() => setPricingVisible(true)}>
+          <View
+            style={[
+              styles.planCard,
+              {
+                backgroundColor: "#FFFFFF",
+                borderColor: "rgba(94,76,235,0.12)",
+                shadowColor: "#000000",
+              },
+            ]}
+          >
+            <View style={[styles.planIconWrap, { backgroundColor: "rgba(94,76,235,0.10)" }]}>
+              <Feather name="zap" size={18} color="#5E4CEB" />
+            </View>
+            <View style={styles.planCardTextWrap}>
+              <Text style={[styles.planCardTitle, { color: colors.heading }]}>
+                {currentUser.plan === "free" ? "Atualizar seu plano" : "Gerenciar assinatura"}
+              </Text>
+              <Text style={[styles.planCardSubtitle, { color: colors.bodyText }]}>
+                {currentUser.plan === "free"
+                  ? "Desbloqueie gravacoes ilimitadas e recursos premium."
+                  : "Revise beneficios e detalhes da sua assinatura atual."}
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={colors.gray500} />
+          </View>
+        </TouchableOpacity>
+
+        <SectionHeader
+          title="Integracoes"
+          subtitle="Conecte os canais essenciais para o seu fluxo."
+          colors={colors}
+        />
+        <SectionGroup colors={colors}>
+          <SettingsRow
+            icon="message-circle"
+            iconColor="#22C55E"
+            iconBackground="rgba(34,197,94,0.12)"
+            title="WhatsApp"
+            subtitle="Envio de resumos e notificacoes por conversa."
+            right={
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: "rgba(0,0,0,0.04)" },
+                ]}
+              >
+                <Text style={[styles.statusBadgeText, { color: colors.gray600 }]}>
+                  Em breve
+                </Text>
               </View>
-            </View>
-          </View>
-        </GlassCard>
-      ))}
-
-      <View style={styles.sectionRow}>
-        <Text style={[styles.sectionTitle, { color: colors.heading }]}>Integrações</Text>
-      </View>
-
-      {integrations.map((integration) => (
-        <GlassCard key={integration.id} noPad>
-          <View style={styles.rowInner}>
-            <View style={[styles.iconWrap, { backgroundColor: integration.color + "18" }]}>
-              <Feather name={integration.icon as any} size={18} color={integration.color} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.rowTitle, { color: colors.heading }]}>{integration.name}</Text>
-              <Text style={[styles.rowSub, { color: colors.bodyText }]}>{integration.description}</Text>
-            </View>
-            <Switch
-              value={integration.connected}
-              onValueChange={() => toggleIntegration(integration.id)}
-              trackColor={{ false: "rgba(175,82,222,0.15)", true: colors.primary + "80" }}
-              thumbColor={integration.connected ? colors.primary : colors.gray300}
-              ios_backgroundColor="rgba(175,82,222,0.12)"
-            />
-          </View>
-        </GlassCard>
-      ))}
-
-      <View style={styles.sectionRow}>
-        <Text style={[styles.sectionTitle, { color: colors.heading }]}>Preferências</Text>
-      </View>
-
-      <GlassCard noPad>
-        <View style={styles.rowInner}>
-          <View style={[styles.iconWrap, { backgroundColor: "rgba(175,82,222,0.10)" }]}>
-            <Feather name="bell" size={16} color={colors.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.rowTitle, { color: colors.heading }]}>Notificações</Text>
-            <Text style={[styles.rowSub, { color: colors.bodyText }]}>Quando o resumo estiver pronto</Text>
-          </View>
-          <Switch
-            value={notifEnabled}
-            onValueChange={setNotifEnabled}
-            trackColor={{ false: "rgba(175,82,222,0.15)", true: colors.primary + "80" }}
-            thumbColor={notifEnabled ? colors.primary : colors.gray300}
-            ios_backgroundColor="rgba(175,82,222,0.12)"
+            }
           />
-        </View>
-      </GlassCard>
+        </SectionGroup>
 
-      <GlassCard noPad>
-        <View style={styles.rowInner}>
-          <View style={[styles.iconWrap, { backgroundColor: "rgba(175,82,222,0.10)" }]}>
-            <Feather name="calendar" size={16} color={colors.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.rowTitle, { color: colors.heading }]}>Entrar automaticamente</Text>
-            <Text style={[styles.rowSub, { color: colors.bodyText }]}>Gravar convites do calendário</Text>
-          </View>
-          <Switch
-            value={autoJoin}
-            onValueChange={setAutoJoin}
-            trackColor={{ false: "rgba(175,82,222,0.15)", true: colors.primary + "80" }}
-            thumbColor={autoJoin ? colors.primary : colors.gray300}
-            ios_backgroundColor="rgba(175,82,222,0.12)"
+        <SectionHeader
+          title="Preferencias"
+          subtitle="Defina como o app participa da sua rotina."
+          colors={colors}
+        />
+        <SectionGroup colors={colors}>
+          <SettingsRow
+            icon="bell"
+            iconColor="#5E4CEB"
+            iconBackground="rgba(94,76,235,0.10)"
+            title="Notificacoes"
+            subtitle="Avisar quando o resumo estiver pronto."
+            right={
+              <Switch
+                value={notifEnabled}
+                onValueChange={setNotifEnabled}
+                trackColor={{ false: "#D1D1D6", true: "#8E7FF4" }}
+                thumbColor={notifEnabled ? "#5E4CEB" : "#FFFFFF"}
+                ios_backgroundColor="#D1D1D6"
+              />
+            }
           />
-        </View>
-      </GlassCard>
+          <SettingsRow
+            icon="calendar"
+            iconColor="#5E4CEB"
+            iconBackground="rgba(94,76,235,0.10)"
+            title="Entrar automaticamente"
+            subtitle="Gravar convites vindos do calendario."
+            right={
+              <Switch
+                value={autoJoin}
+                onValueChange={setAutoJoin}
+                trackColor={{ false: "#D1D1D6", true: "#8E7FF4" }}
+                thumbColor={autoJoin ? "#5E4CEB" : "#FFFFFF"}
+                ios_backgroundColor="#D1D1D6"
+              />
+            }
+          />
+        </SectionGroup>
 
-      <TouchableOpacity
-        onPress={() => Alert.alert("Sair", "Tem certeza?", [
-          { text: "Cancelar", style: "cancel" },
-          { text: "Sair", style: "destructive", onPress: logout },
-        ])}
-        activeOpacity={0.9}
-      >
-        <GlassCard noPad style={{ borderColor: "rgba(255,59,48,0.25)" }}>
-          <View style={[styles.rowInner, { justifyContent: "center" }]}>
-            <Feather name="log-out" size={16} color="#FF3B30" />
-            <Text style={[styles.rowTitle, { color: "#FF3B30" }]}>Sair da conta</Text>
+        <TouchableOpacity
+          onPress={() =>
+            Alert.alert("Sair", "Tem certeza?", [
+              { text: "Cancelar", style: "cancel" },
+              { text: "Sair", style: "destructive", onPress: logout },
+            ])
+          }
+          activeOpacity={0.92}
+        >
+          <View
+            style={[
+              styles.logoutCard,
+              {
+                backgroundColor: "#FFFFFF",
+                borderColor: "rgba(255,59,48,0.10)",
+                shadowColor: "#000000",
+              },
+            ]}
+          >
+            <Feather name="log-out" size={17} color="#FF3B30" />
+            <Text style={styles.logoutText}>Sair da conta</Text>
           </View>
-        </GlassCard>
-      </TouchableOpacity>
+        </TouchableOpacity>
 
-      <Text style={[styles.version, { color: colors.gray400 }]}>Notura v2.0 · Criado com IA</Text>
+        <Text style={[styles.version, { color: colors.gray500 }]}>
+          Notura v2.0 · Criado com IA
+        </Text>
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {},
-  content: { paddingHorizontal: 20, gap: 12 },
-  iconBtn: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  profileHeader: {
-    borderRadius: 24,
-    padding: 24,
+  scroll: {
+    paddingTop: 2,
+  },
+  content: {
+    paddingHorizontal: 20,
+    gap: 18,
+  },
+  heroCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 22,
+    gap: 18,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 3,
+  },
+  heroTopRow: {
+    flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 16,
   },
-  avatarRing: {
-    borderWidth: 3,
-    borderColor: "rgba(255,255,255,0.85)",
-    borderRadius: 44,
-    padding: 2,
-    marginBottom: 6,
+  heroIdentity: {
+    flex: 1,
+    gap: 4,
   },
-  avatarCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+  planBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginBottom: 2,
+  },
+  planBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+  profileName: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: -0.6,
+  },
+  profileEmail: {
+    fontSize: 14,
+  },
+  statsPanel: {
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+    gap: 4,
+  },
+  statNum: {
+    fontSize: 22,
+    fontWeight: "700",
+    letterSpacing: -0.4,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  statDivider: {
+    width: 1,
+    height: 34,
+  },
+  planCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    elevation: 2,
+  },
+  planIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { fontSize: 28, fontWeight: "700", color: "#FFFFFF" },
-  profileName: { fontSize: 20, fontWeight: "700", color: "#FFFFFF" },
-  profileRole: { fontSize: 13, color: "rgba(255,255,255,0.65)" },
-  statsRow: {
+  planCardTextWrap: {
+    flex: 1,
+    gap: 3,
+  },
+  planCardTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: -0.2,
+  },
+  planCardSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  sectionHeader: {
+    gap: 4,
+    marginTop: 2,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    letterSpacing: -0.2,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  groupCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    overflow: "hidden",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 22,
+    elevation: 2,
+  },
+  groupDivider: {
+    height: 0.5,
+    marginLeft: 70,
+    marginRight: 16,
+  },
+  row: {
+    minHeight: 78,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.15)",
-    width: "100%",
+    gap: 14,
   },
-  statItem: { flex: 1, alignItems: "center", gap: 2 },
-  statNum: { fontSize: 22, fontWeight: "700", color: "#FFFFFF" },
-  statLabel: { fontSize: 11, color: "rgba(255,255,255,0.65)" },
-  statDivider: { width: 1, height: 32, backgroundColor: "rgba(255,255,255,0.18)" },
-  sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 },
-  sectionTitle: { fontSize: 17, fontWeight: "600" },
-  seeAll: { fontSize: 14, fontWeight: "500" },
-  foldersRow: { flexDirection: "row", gap: 12 },
-  folderCard: { flex: 1, padding: 0 },
-  folderInner: { padding: 14, gap: 4 },
-  iconWrap: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  folderName: { fontSize: 13, fontWeight: "600", marginTop: 4 },
-  folderDate: { fontSize: 11 },
-  folderCount: { fontSize: 11 },
-  rowInner: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
-  rowTitle: { fontSize: 14, fontWeight: "500" },
-  rowSub: { fontSize: 12, marginTop: 1 },
-  pill: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 9999 },
-  pillText: { fontSize: 12, fontWeight: "600", color: "#FFFFFF" },
-  statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9999 },
-  statusText: { fontSize: 11, fontWeight: "500" },
-  version: { fontSize: 12, textAlign: "center", marginTop: 8, marginBottom: 4 },
+  rowIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowTextWrap: {
+    flex: 1,
+    gap: 3,
+  },
+  rowTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1C1C1E",
+    letterSpacing: -0.2,
+  },
+  rowSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#6B6B7A",
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  logoutCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    paddingVertical: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    elevation: 2,
+  },
+  logoutText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#FF3B30",
+  },
+  version: {
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 4,
+    marginBottom: 6,
+  },
 });

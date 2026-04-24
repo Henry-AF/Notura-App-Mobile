@@ -4,16 +4,29 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { AppNavbar } from "@/components/AppNavbar";
 import { useColors } from "@/hooks/useColors";
+import { useMeetingCreationStore } from "@/stores/useMeetingCreationStore";
 import { useRecordingStore } from "@/stores/useRecordingStore";
 
 export default function RecordScreen() {
   const colors = useColors();
   const router = useRouter();
+  const openMeetingEntrySheet = useMeetingCreationStore((state) => state.openMeetingEntrySheet);
   const openRecordingSheet = useRecordingStore((state) => state.openRecordingSheet);
+  const status = useRecordingStore((state) => state.status);
+  const completedRecording = useRecordingStore((state) => state.completedRecording);
+
+  function openRecordFlow() {
+    if (status !== "idle" || completedRecording !== null) {
+      openRecordingSheet();
+      return;
+    }
+
+    openMeetingEntrySheet();
+  }
 
   useEffect(() => {
-    openRecordingSheet();
-  }, [openRecordingSheet]);
+    openRecordFlow();
+  }, [completedRecording, openMeetingEntrySheet, openRecordingSheet, status]);
 
   return (
     <View style={styles.root}>
@@ -26,7 +39,7 @@ export default function RecordScreen() {
         <TouchableOpacity
           style={[styles.button, { backgroundColor: colors.primary }]}
           onPress={() => {
-            openRecordingSheet();
+            openRecordFlow();
             router.back();
           }}
           activeOpacity={0.9}

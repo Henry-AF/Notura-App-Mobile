@@ -7,10 +7,16 @@ type RecordingSnapshot = {
   elapsedSeconds: number;
 };
 
+export type CompletedRecordingSnapshot = {
+  localUri: string;
+  elapsedSeconds: number;
+};
+
 interface RecordingStoreState {
   sheetState: RecordingSheetState;
   status: RecordingStatus;
   elapsedSeconds: number;
+  completedRecording: CompletedRecordingSnapshot | null;
   openRecordingSheet: () => void;
   closeRecordingSheet: () => void;
   expandRecordingSheet: () => void;
@@ -18,6 +24,8 @@ interface RecordingStoreState {
   pauseRecordingSession: () => void;
   resumeRecordingSession: () => void;
   stopRecordingSession: () => RecordingSnapshot;
+  setCompletedRecording: (recording: CompletedRecordingSnapshot) => void;
+  clearCompletedRecording: () => void;
 }
 
 let elapsedTimer: ReturnType<typeof setInterval> | null = null;
@@ -55,6 +63,7 @@ export const useRecordingStore = create<RecordingStoreState>((set, get) => ({
   sheetState: "hidden",
   status: "idle",
   elapsedSeconds: 0,
+  completedRecording: null,
   openRecordingSheet: () => set({ sheetState: "partial" }),
   closeRecordingSheet: () => set({ sheetState: "hidden" }),
   expandRecordingSheet: () => set({ sheetState: "expanded" }),
@@ -63,6 +72,7 @@ export const useRecordingStore = create<RecordingStoreState>((set, get) => ({
       sheetState: "partial",
       status: "recording",
       elapsedSeconds: 0,
+      completedRecording: null,
     });
     startRecordingTimers();
   },
@@ -85,4 +95,13 @@ export const useRecordingStore = create<RecordingStoreState>((set, get) => ({
 
     return { elapsedSeconds };
   },
+  setCompletedRecording: (recording) =>
+    set({
+      completedRecording: recording,
+      sheetState: "partial",
+    }),
+  clearCompletedRecording: () =>
+    set({
+      completedRecording: null,
+    }),
 }));
