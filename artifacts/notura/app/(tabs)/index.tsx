@@ -21,7 +21,7 @@ import { fetchHomeOverview } from "./home-api";
 const PLAN_LIMITS = {
   free: 3,
   pro: 30,
-  platinum: null,
+  team: null,
 } as const;
 
 function saudacao() {
@@ -69,7 +69,8 @@ function parseConversationMonthKey(dateLabel: string, dateShort: string) {
   return `${Number(yearToken)}-${monthIndex}`;
 }
 
-function formatPlanLabel(plan: "free" | "pro" | "platinum") {
+function formatPlanLabel(plan: "free" | "pro" | "team") {
+  if (plan === "team") return "PLATINUM";
   return plan.toUpperCase();
 }
 

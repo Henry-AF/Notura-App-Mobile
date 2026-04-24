@@ -28,6 +28,14 @@ test("pricing modal should expose Free, Pro and Platinum plans with the new pric
     "Expected pricing modal to show the Platinum price as 79,90"
   );
   assert.ok(
+    pricingModalSource.includes('id: "team"'),
+    "Expected pricing modal to use team as the internal id for the top plan"
+  );
+  assert.ok(
+    !pricingModalSource.includes('id: "platinum"'),
+    "Expected pricing modal to stop using platinum as the internal plan id"
+  );
+  assert.ok(
     pricingModalSource.includes("Plano atual"),
     "Expected pricing modal to indicate the current plan"
   );
@@ -38,5 +46,70 @@ test("pricing modal should expose Free, Pro and Platinum plans with the new pric
   assert.ok(
     !pricingModalSource.includes("Começar no Free"),
     "Expected pricing modal to avoid rendering a CTA for the free plan"
+  );
+});
+
+test("pricing modal should use AbacatePay API checkout and verify after browser return", () => {
+  assert.ok(
+    !pricingModalSource.includes("EXPO_PUBLIC_PRO_CHECKOUT_URL"),
+    "Expected pricing modal to stop reading the static Pro checkout URL"
+  );
+  assert.ok(
+    !pricingModalSource.includes("EXPO_PUBLIC_PLATINUM_CHECKOUT_URL"),
+    "Expected pricing modal to stop reading the static Platinum checkout URL"
+  );
+  assert.ok(
+    pricingModalSource.includes("startAbacatePayCheckout"),
+    "Expected pricing modal to start checkout through the pricing API helper"
+  );
+  assert.ok(
+    pricingModalSource.includes('cta: "Ir para checkout"'),
+    "Expected pricing modal to advertise checkout for supported paid plans"
+  );
+  assert.ok(
+    !pricingModalSource.includes('cta: "Em breve"'),
+    "Expected pricing modal to make the top plan checkout action functional"
+  );
+  assert.ok(
+    pricingModalSource.includes("verifyAbacatePayCheckout"),
+    "Expected pricing modal to verify checkout through the pricing API helper"
+  );
+  assert.ok(
+    pricingModalSource.includes("pendingCheckoutPlan"),
+    "Expected pricing modal to keep checkout pending instead of verifying immediately"
+  );
+  assert.ok(
+    pricingModalSource.includes("Verificar pagamento"),
+    "Expected pricing modal to expose an explicit payment verification action"
+  );
+  assert.ok(
+    pricingModalSource.includes("Linking.openURL"),
+    "Expected pricing modal to open native checkout with Linking.openURL"
+  );
+  assert.ok(
+    pricingModalSource.includes("window.location.assign"),
+    "Expected pricing modal to redirect the current web tab to the checkout URL"
+  );
+  assert.ok(
+    !pricingModalSource.includes("WebBrowser.openBrowserAsync"),
+    "Expected pricing modal not to use WebBrowser.openBrowserAsync for checkout"
+  );
+  assert.ok(
+    pricingModalSource.indexOf("setPendingCheckoutPlan(planId)") <
+      pricingModalSource.indexOf("await openCheckoutUrl"),
+    "Expected pricing modal to mark checkout pending before leaving the app for checkout"
+  );
+  assert.ok(
+    pricingModalSource.indexOf("async function verifyPendingCheckout") <
+      pricingModalSource.indexOf("await verifyAbacatePayCheckout"),
+    "Expected pricing modal to call verify from the explicit verification action"
+  );
+  assert.ok(
+    pricingModalSource.includes('queryKey: ["user-me"]'),
+    "Expected pricing modal to refresh the user profile after checkout verification"
+  );
+  assert.ok(
+    pricingModalSource.includes('queryKey: ["home-overview"]'),
+    "Expected pricing modal to refresh the home overview after checkout verification"
   );
 });

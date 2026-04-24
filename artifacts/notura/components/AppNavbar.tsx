@@ -12,7 +12,8 @@ type AppNavbarProps = {
   showBackButton?: boolean;
 };
 
-function formatPlanLabel(plan: "free" | "pro" | "platinum") {
+function formatPlanLabel(plan: "free" | "pro" | "team") {
+  if (plan === "team") return "PLATINUM";
   return plan.toUpperCase();
 }
 
