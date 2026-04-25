@@ -126,3 +126,21 @@ test("recording flow should be backed by a zustand store with reopen behavior", 
     "Expected recording sheet to stay focused on waveform and core recording controls"
   );
 });
+
+test("recording sheet should include the bottom safe area inside the white panel", () => {
+  const bottomSheetSource = readFileSync(bottomSheetPath, "utf8");
+  const sheetWrapStyleStart = bottomSheetSource.indexOf("styles.sheetWrap,");
+  const sheetStyleStart = bottomSheetSource.indexOf("styles.sheet,");
+  const safeAreaPadding = "paddingBottom: Math.max(insets.bottom, 18)";
+  const paddingIndex = bottomSheetSource.indexOf(safeAreaPadding);
+  const transparentWrapperStyle = bottomSheetSource.slice(sheetWrapStyleStart, sheetStyleStart);
+
+  assert.ok(
+    !transparentWrapperStyle.includes(safeAreaPadding),
+    "Expected transparent sheet wrapper not to own bottom safe-area padding"
+  );
+  assert.ok(
+    sheetStyleStart < paddingIndex,
+    "Expected the white recording sheet panel to fill the bottom safe-area padding"
+  );
+});

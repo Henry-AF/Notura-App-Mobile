@@ -264,7 +264,6 @@ export function RecordingBottomSheet() {
         style={[
           styles.sheetWrap,
           {
-            paddingBottom: Math.max(insets.bottom, 18),
             transform: [{ translateY }],
           },
         ]}
@@ -272,7 +271,10 @@ export function RecordingBottomSheet() {
         <View
           style={[
             styles.sheet,
-            { maxHeight: isExpanded ? expandedHeight : partialHeight },
+            {
+              maxHeight: isExpanded ? expandedHeight : partialHeight,
+              paddingBottom: Math.max(insets.bottom, 18),
+            },
             isExpanded && { height: expandedHeight },
             Platform.OS === "ios" && styles.shadowIos,
             Platform.OS === "android" && styles.shadowAndroid,
