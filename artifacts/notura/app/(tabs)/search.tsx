@@ -24,7 +24,7 @@ function statusMeta(status: MeetingsLibraryStatus, colors: ReturnType<typeof use
   switch (status) {
     case "completed":
       return {
-        label: "Completado",
+        label: "Processado",
         backgroundColor: "rgba(52,199,89,0.12)",
         textColor: colors.success,
       };
