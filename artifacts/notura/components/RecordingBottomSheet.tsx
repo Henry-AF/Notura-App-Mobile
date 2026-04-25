@@ -37,6 +37,7 @@ export function RecordingBottomSheet() {
   const dragDismissThreshold = 120;
   const dragExpandThreshold = 80;
   const [isProcessingMeeting, setIsProcessingMeeting] = useState(false);
+  const [isDiscardingRecording, setIsDiscardingRecording] = useState(false);
   const { start, pause, resume, stop } = useRecording();
   const {
     sheetState,
@@ -194,26 +195,54 @@ export function RecordingBottomSheet() {
     }
   }
 
-  async function discardLocalRecording() {
-    if (!completedRecording) return;
-
-    await deleteLocalRecordingFile(completedRecording.localUri);
-    clearCompletedRecording();
+  async function discardLocalRecording(localUri: string) {
+    try {
+      await deleteLocalRecordingFile(localUri);
+      clearCompletedRecording();
+      closeRecordingSheet();
+    } finally {
+      setIsDiscardingRecording(false);
+    }
   }
 
   function handleDiscardRecording() {
-    if (!completedRecording) return;
+    if (!completedRecording || isDiscardingRecording) return;
 
-    Alert.alert("Descartar gravação", "Essa ação remove o áudio local gravado.", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Descartar",
-        style: "destructive",
-        onPress: () => {
-          void discardLocalRecording();
+    const localUri = completedRecording.localUri;
+    setIsDiscardingRecording(true);
+
+    if (Platform.OS === "web") {
+      const confirmed = globalThis.confirm("Descartar gravação? Essa ação remove o áudio local gravado.");
+      if (confirmed) {
+        void discardLocalRecording(localUri);
+        return;
+      }
+
+      setIsDiscardingRecording(false);
+      return;
+    }
+
+    Alert.alert(
+      "Descartar gravação",
+      "Essa ação remove o áudio local gravado.",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+          onPress: () => setIsDiscardingRecording(false),
         },
+        {
+          text: "Descartar",
+          style: "destructive",
+          onPress: () => {
+            void discardLocalRecording(localUri);
+          },
+        },
+      ],
+      {
+        cancelable: false,
       },
-    ]);
+    );
   }
 
   async function handleProcessRecording() {
@@ -369,8 +398,13 @@ export function RecordingBottomSheet() {
                   style={[styles.processAction, { backgroundColor: "rgba(255,59,48,0.10)" }]}
                   onPress={handleDiscardRecording}
                   activeOpacity={0.88}
+                  disabled={isDiscardingRecording || isProcessingMeeting}
                 >
-                  <Feather name="trash-2" size={18} color="#FF3B30" />
+                  {isDiscardingRecording ? (
+                    <ActivityIndicator color="#FF3B30" />
+                  ) : (
+                    <Feather name="trash-2" size={18} color="#FF3B30" />
+                  )}
                   <Text style={[styles.processActionLabel, { color: "#FF3B30" }]}>Descartar reunião</Text>
                 </TouchableOpacity>
 

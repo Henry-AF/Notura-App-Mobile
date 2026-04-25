@@ -71,6 +71,27 @@ test("upload sheet and legacy record route should point into the new creation fl
   );
 });
 
+test("upload sheet should let the user choose and process an audio file from the device", () => {
+  assert.ok(
+    uploadSheetSource.includes("pickAudioFile") &&
+      uploadSheetSource.includes("handlePickAudioFile") &&
+      uploadSheetSource.includes("audioFile"),
+    "Expected the upload sheet to use the shared audio file picker"
+  );
+  assert.ok(
+    uploadSheetSource.includes("processLocalRecording") &&
+      uploadSheetSource.includes("handleProcessAudioFile") &&
+      uploadSheetSource.includes("router.push(`/conversation/${result.meetingId}`)"),
+    "Expected the upload sheet to process the selected audio file through the recording upload helper"
+  );
+  assert.ok(
+    uploadSheetSource.includes("isPickingAudioFile") &&
+      uploadSheetSource.includes("isProcessingAudioFile") &&
+      uploadSheetSource.includes("disabled={isPickingAudioFile || isProcessingAudioFile}"),
+    "Expected upload actions to be idempotent while picking or processing"
+  );
+});
+
 test("meeting creation sheets should remove the backdrop as soon as they start closing", () => {
   assert.ok(
     newMeetingSheetSource.includes("{isVisible && (") &&

@@ -1,19 +1,27 @@
 import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { processLocalRecording } from "@/app/record-api";
 import { useColors } from "@/hooks/useColors";
+import { pickAudioFile, type PickedAudioFile } from "@/lib/audio-file-picker";
 import { useMeetingCreationStore } from "@/stores/useMeetingCreationStore";
 
 export function UploadMeetingBottomSheet() {
   const colors = useColors();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(520)).current;
   const [shouldRender, setShouldRender] = useState(false);
+  const [audioFile, setAudioFile] = useState<PickedAudioFile | null>(null);
+  const [isPickingAudioFile, setIsPickingAudioFile] = useState(false);
+  const [isProcessingAudioFile, setIsProcessingAudioFile] = useState(false);
   const activeSheet = useMeetingCreationStore((state) => state.activeSheet);
   const closeMeetingCreationSheet = useMeetingCreationStore((state) => state.closeMeetingCreationSheet);
   const isVisible = activeSheet === "upload";
+  const isBusy = isPickingAudioFile || isProcessingAudioFile;
 
   useEffect(() => {
     if (isVisible) {
@@ -35,6 +43,8 @@ export function UploadMeetingBottomSheet() {
 
     if (!shouldRender) return;
 
+    setAudioFile(null);
+
     Animated.spring(translateY, {
       toValue: 520,
       useNativeDriver: true,
@@ -47,6 +57,44 @@ export function UploadMeetingBottomSheet() {
       }
     });
   }, [isVisible, shouldRender, translateY]);
+
+  async function handlePickAudioFile() {
+    if (isBusy) return;
+
+    try {
+      setIsPickingAudioFile(true);
+      const file = await pickAudioFile();
+      if (file) {
+        setAudioFile(file);
+      }
+    } catch {
+      Alert.alert("Não foi possível abrir seus arquivos", "Tente selecionar o áudio novamente.");
+    } finally {
+      setIsPickingAudioFile(false);
+    }
+  }
+
+  async function handleProcessAudioFile() {
+    if (!audioFile || isBusy) return;
+
+    try {
+      setIsProcessingAudioFile(true);
+      const now = new Date();
+      const result = await processLocalRecording({
+        localUri: audioFile.uri,
+        clientName: audioFile.name,
+        meetingDate: now.toISOString().slice(0, 10),
+      });
+
+      closeMeetingCreationSheet();
+      setAudioFile(null);
+      router.push(`/conversation/${result.meetingId}`);
+    } catch {
+      Alert.alert("Não foi possível processar o arquivo", "Verifique o áudio selecionado e tente novamente.");
+    } finally {
+      setIsProcessingAudioFile(false);
+    }
+  }
 
   if (!shouldRender) return null;
 
@@ -75,7 +123,7 @@ export function UploadMeetingBottomSheet() {
             <Text style={[styles.eyebrow, { color: colors.primary }]}>Subir arquivo</Text>
             <Text style={[styles.title, { color: colors.heading }]}>Importe o audio da reuniao</Text>
             <Text style={[styles.subtitle, { color: colors.bodyText }]}>
-              Em seguida vamos conectar esse fluxo ao seletor de arquivo para enviar audios gravados fora do app.
+              Escolha um arquivo de audio do seu dispositivo para enviar ao Notura.
             </Text>
           </View>
 
@@ -93,19 +141,28 @@ export function UploadMeetingBottomSheet() {
             <Feather name="file" size={18} color="#5E4CEB" />
           </View>
           <View style={styles.infoCopy}>
-            <Text style={styles.infoTitle}>Audio externo</Text>
+            <Text style={styles.infoTitle}>{audioFile ? audioFile.name : "Audio externo"}</Text>
             <Text style={styles.infoText}>
-              Ideal para reunioes do Zoom, Meet ou gravacoes exportadas do seu dispositivo.
+              {audioFile
+                ? "Arquivo pronto para ser processado pela IA."
+                : "Ideal para reunioes do Zoom, Meet ou gravacoes exportadas do seu dispositivo."}
             </Text>
           </View>
         </View>
 
         <TouchableOpacity
           style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-          onPress={closeMeetingCreationSheet}
+          onPress={audioFile ? handleProcessAudioFile : handlePickAudioFile}
           activeOpacity={0.9}
+          disabled={isPickingAudioFile || isProcessingAudioFile}
         >
-          <Text style={styles.primaryButtonText}>Entendi</Text>
+          {isPickingAudioFile || isProcessingAudioFile ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.primaryButtonText}>
+              {audioFile ? "Processar reunião" : "Escolher áudio"}
+            </Text>
+          )}
         </TouchableOpacity>
       </Animated.View>
     </View>
