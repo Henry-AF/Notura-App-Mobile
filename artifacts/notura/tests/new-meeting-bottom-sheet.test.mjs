@@ -70,3 +70,11 @@ test("upload sheet and legacy record route should point into the new creation fl
     "Expected legacy /record access to reuse the new meeting entry while preserving active recording reopen behavior"
   );
 });
+
+test("meeting creation sheets should remove the backdrop as soon as they start closing", () => {
+  assert.ok(
+    newMeetingSheetSource.includes("{isVisible && (") &&
+      uploadSheetSource.includes("{isVisible && ("),
+    "Expected meeting creation backdrops to render only while the sheet is visible"
+  );
+});

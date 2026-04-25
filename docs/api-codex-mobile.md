@@ -481,6 +481,8 @@ Body:
 { "plan": "pro" }
 ```
 
+Planos aceitos: `pro | team`.
+
 Sucesso:
 
 - `{ "checkoutUrl": "https://..." }`

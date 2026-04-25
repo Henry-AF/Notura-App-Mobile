@@ -80,7 +80,9 @@ export function NewMeetingBottomSheet() {
 
   return (
     <View pointerEvents={isVisible ? "auto" : "box-none"} style={styles.host}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={closeMeetingCreationSheet} />
+      {isVisible && (
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={closeMeetingCreationSheet} />
+      )}
 
       <Animated.View
         style={[
